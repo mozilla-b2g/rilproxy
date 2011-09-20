@@ -11,7 +11,7 @@ included in the phone's firmware distribution. To access these
 drivers, android uses the libril library. Information on libril and
 android's telephony architecture is available at
 
-http://www.netmite.com/android/mydroid/development/pdk/docs/telephony.html
+[[http://www.netmite.com/android/mydroid/development/pdk/docs/telephony.html]]
 
 Source code for libril and rild is available in the B2G checkout as
 
