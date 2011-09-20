@@ -1,0 +1,46 @@
+* B2G Dialer Test
+
+This program demonstrates how to communicate with the B2G RIL daemon,
+for dialing the phone, dealing with SMS, and other actions requiring
+access to the cell phone radio.
+
+* Low Level Access
+
+Kernel access for specific phones are basically modem drivers,
+included in the phone's firmware distribution. To access these
+drivers, android uses the libril library. Information on libril and
+android's telephony architecture is available at
+
+http://www.netmite.com/android/mydroid/development/pdk/docs/telephony.html
+
+Source code for libril and rild is available in the B2G checkout as
+
+glue/gonk/hardware/ril
+
+* Socket Access
+
+In order to access libril, android uses an ipc socket interface to the
+rild daemon. The daemon simply creates a socket named "rild" and
+manages transfers of text strings through it. 
+
+A sample emulator implementation of rild is available alongside the
+libril source code. Actual rild implementations for phones are
+proprietary and distributed by the vendor.
+
+* Android Access
+
+Android code specific to RIL communication is in 
+
+glue/gonk/frameworks/base/telephony/java/com/android/internal/telephony/RIL.java
+
+* Goals
+
+- Create patch to make android radio core not connect to rild socket
+- Figure out/find documentation for commands for ril events
+- Create function that will dial phone via socket calls
+- Create function that will wait for an SMS message (async) via sockets
+
+* Relevant Websites
+
+- [[http://i-miss-erin.blogspot.com/2009/11/radio-layer-interface-in-android.html][Hooking up Android to a GSM radio on the BeagleBoard]]
+- [[http://www.netmite.com/android/mydroid/development/pdk/docs/telephony.html][libril Documentation]]
