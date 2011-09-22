@@ -21,7 +21,9 @@ glue/gonk/hardware/ril
 
 In order to access libril, android uses an ipc socket interface to the
 rild daemon. The daemon simply creates a socket named "rild" and
-manages transfers of text strings through it. 
+manages transfers of ipc parcels
+(http://developer.android.com/reference/android/os/Parcel.html)
+through it.
 
 A sample emulator implementation of rild is available alongside the
 libril source code. Actual rild implementations for phones are
