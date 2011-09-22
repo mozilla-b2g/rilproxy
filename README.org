@@ -33,6 +33,10 @@ Android code specific to RIL communication is in
 
 glue/gonk/frameworks/base/telephony/java/com/android/internal/telephony/RIL.java
 
+* Debugging
+
+The command "logcat -b radio" in the android shell will print all radio messages
+
 * Goals
 
 - Create patch to make android radio core not connect to rild socket
@@ -41,6 +45,6 @@ glue/gonk/frameworks/base/telephony/java/com/android/internal/telephony/RIL.java
 - Create function that will wait for an SMS message (async) via sockets
 
 * Relevant Websites
-
 - [[http://i-miss-erin.blogspot.com/2009/11/radio-layer-interface-in-android.html][Hooking up Android to a GSM radio on the BeagleBoard]]
 - [[http://www.netmite.com/android/mydroid/development/pdk/docs/telephony.html][libril Documentation]]
+- [[https://groups.google.com/forum/#!topic/android-porting/lo90a3Bb1nA][Small thread on ril stuff]]
