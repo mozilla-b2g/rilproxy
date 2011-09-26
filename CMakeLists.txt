@@ -1,4 +1,14 @@
-PROJECT(b2g-dialer-test)
+######################################################################################
+#
+# HELPER FUNCTIONS
+#
+######################################################################################
+
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
+
+######################################################################################
+# Parse arguments from a string list
+######################################################################################
 
 MACRO(PARSE_ARGUMENTS prefix arg_names option_names)
   SET(DEFAULT_ARGS)
@@ -318,6 +328,20 @@ FUNCTION(BUILDSYS_BUILD_EXE)
   ENDIF()
 
 ENDFUNCTION(BUILDSYS_BUILD_EXE)
+
+######################################################################################
+#
+# PROJECT SETUP
+#
+######################################################################################
+
+PROJECT(b2g-dialer-test)
+
+#Hacky cross-compiler check
+STRING(REGEX MATCH ".*androideabi.*" USING_ANDROID_GCC ${CMAKE_C_COMPILER})
+IF(NOT USING_ANDROID_GCC)
+  MESSAGE(FATAL_ERROR "It does not look like you have run android_env.sh yet. Please make sure to set the configuration variables correctly and run it before trying to run cmake, then delete your CMakeCache.txt file and run cmake again.")
+ENDIF()
 
 BUILDSYS_BUILD_EXE(
   NAME b2g-dialer-test
