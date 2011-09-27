@@ -6,10 +6,10 @@ access to the cell phone radio.
 
 * Low Level Access
 
-Kernel access for specific phones are basically modem drivers,
-included in the phone's firmware distribution. To access these
-drivers, android uses the libril library. Information on libril and
-android's telephony architecture is available at
+Kernel access for specific phones are vendor specific, included in the
+phone's firmware distribution. To access these drivers, android uses
+the libril library. Information on libril and android's telephony
+architecture is available at
 
 [[http://www.netmite.com/android/mydroid/development/pdk/docs/telephony.html]]
 
@@ -29,15 +29,54 @@ A sample emulator implementation of rild is available alongside the
 libril source code. Actual rild implementations for phones are
 proprietary and distributed by the vendor.
 
+Due to wanting a single event source for dealing with events, the rild
+socket requires exclusive access from a single process. In a normal
+android installation, this would happen via the com.android.phone
+process. In order to make our own code talk to the socket, the current
+strategy is to change the socket name in the RIL.java file to
+something other than "rild" (since we can't recompile vendor specific
+rild). 
+
 * Android Access
 
 Android code specific to RIL communication is in 
 
 glue/gonk/frameworks/base/telephony/java/com/android/internal/telephony/RIL.java
 
+The Java code communicates with the rild socket via the Binder IPC
+system, using objects known as Parcels. Parcels are simply flattened,
+serialized data structures. libbinder exists for C++ in
+glue/gonk/frameworks. 
+
+To access sockets via C, android uses libcutils, also available in
+glue/gonk/frameworks.
+
+Each RIL Socket Write has the following format:
+
+- Byte 0x00 - uint32_t - Header (Size of Following Parcel)
+  - PARCEL BEGINS AFTER THIS FIELD
+- Byte 0x04 - uint32_t - RIL Event ID (IDs available in glue/gonk/hardware/ril/include/telephony/ril.h)
+- Byte 0x08 - uint32_t - Packet Serial Number (Used to track send/receive order)
+- Byte 0x12 - void* - Data for event
+
+The expectations of each RIL event are outlined in the comments for
+the fields in the ril.h file.
+
 * Debugging
 
 The command "logcat -b radio" in the android shell will print all radio messages
+
+Tracing the packet formats going between com.android.phone and the
+rild socket can be achieved by watching strace on the rild
+process. Due to the fact that rild spawns multiple threads, this
+should be done with the fork option, i.e.
+
+strace -p XXXX -f 
+
+To trigger events that happens from outside the network, the
+rild-debug socket is provided by rild. This socket responds to a
+different set of commands, in order to inject RIL events into the ril
+core. It's mainly used for testing new ril implementations.
 
 * Goals
 
