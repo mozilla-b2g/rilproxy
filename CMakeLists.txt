@@ -343,13 +343,24 @@ IF(NOT USING_ANDROID_GCC)
   MESSAGE(FATAL_ERROR "It does not look like you have run android_env.sh yet. Please make sure to set the configuration variables correctly and run it before trying to run cmake, then delete your CMakeCache.txt file and run cmake again.")
 ENDIF()
 
+SET(LIBS "cutils" "binder")
+
+INCLUDE_DIRECTORIES("/home/kmachulis/code/mozbuild/B2G/glue/gonk/system/core/include/" "/home/kmachulis/code/mozbuild/B2G/glue/gonk/frameworks/base/include" "/home/kmachulis/code/mozbuild/android-ndk-r6b/sources/cxx-stl/system/include/")
+
+LINK_DIRECTORIES("/home/kmachulis/code/mozbuild/B2G/glue/gonk/out/host/target/product/galaxys2/obj/STATIC_LIBRARIES/libcutils_intermediates/" "/home/kmachulis/code/mozbuild/B2G/glue/gonk/out/target/product/galaxys2/obj/lib/")
+
 BUILDSYS_BUILD_EXE(
   NAME b2g-dialer-test
-  SOURCES "src/main.c"
+  SOURCES "src/main.cpp"
+  CXX_FLAGS "-fno-exceptions"
+  LINK_LIBS ${LIBS}
   )
 
 ADD_CUSTOM_TARGET(adbpush
   COMMAND "adb" "push" "b2g-dialer-test" "/data/local/tmp/")
 
 ADD_CUSTOM_TARGET(adbdial
-  COMMAND "adb" "shell" "/data/local/tmp/b2g-dialer-test")
+  COMMAND "adb" "shell" "su -c /data/local/tmp/b2g-dialer-test radio")
+
+ADD_CUSTOM_TARGET(adbrwmount
+  COMMAND "adb" "shell" "mount" "-o" "rw,remount,relatime" "-t" "rootfs" "/")
