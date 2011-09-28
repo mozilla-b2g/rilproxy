@@ -345,7 +345,7 @@ ENDIF()
 
 SET(LIBS "cutils" "binder")
 
-INCLUDE_DIRECTORIES("/home/kmachulis/code/mozbuild/B2G/glue/gonk/system/core/include/" "/home/kmachulis/code/mozbuild/B2G/glue/gonk/frameworks/base/include" "/home/kmachulis/code/mozbuild/android-ndk-r6b/sources/cxx-stl/system/include/")
+INCLUDE_DIRECTORIES("/home/kmachulis/code/mozbuild/B2G/glue/gonk/system/core/include/" "/home/kmachulis/code/mozbuild/B2G/glue/gonk/hardware/ril/include" "/home/kmachulis/code/mozbuild/B2G/glue/gonk/frameworks/base/include" "/home/kmachulis/code/mozbuild/android-ndk-r6b/sources/cxx-stl/system/include/")
 
 LINK_DIRECTORIES("/home/kmachulis/code/mozbuild/B2G/glue/gonk/out/host/target/product/galaxys2/obj/STATIC_LIBRARIES/libcutils_intermediates/" "/home/kmachulis/code/mozbuild/B2G/glue/gonk/out/target/product/galaxys2/obj/lib/")
 
@@ -359,8 +359,19 @@ BUILDSYS_BUILD_EXE(
 ADD_CUSTOM_TARGET(adbpush
   COMMAND "adb" "push" "b2g-dialer-test" "/data/local/tmp/")
 
+ADD_DEPENDENCIES(adbpush b2g-dialer-test)
+
 ADD_CUSTOM_TARGET(adbdial
   COMMAND "adb" "shell" "su -c /data/local/tmp/b2g-dialer-test radio")
 
 ADD_CUSTOM_TARGET(adbrwmount
-  COMMAND "adb" "shell" "mount" "-o" "rw,remount,relatime" "-t" "rootfs" "/")
+  COMMAND "adb" "shell" "mount" "-o" "rw,remount,relatime" "-t" "rootfs" "/"
+  COMMAND "adb" "shell" "mount" "-o" "rw,relatime,barrier=1,data=ordered,remount" "-t" "ext4" "/system")
+
+ADD_CUSTOM_TARGET(adbjavaln
+  COMMAND "adb" "shell" "ln" "-s" "/dev/socket/rild" "/dev/socket/rild2")
+
+ADD_CUSTOM_TARGET(adbjavaunln
+  COMMAND "adb" "shell" "rm" "/dev/socket/rild2"
+  COMMAND "adb" "shell" "killall" "com.android.phone"
+  )
