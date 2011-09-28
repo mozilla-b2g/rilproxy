@@ -368,10 +368,10 @@ ADD_CUSTOM_TARGET(adbrwmount
   COMMAND "adb" "shell" "mount" "-o" "rw,remount,relatime" "-t" "rootfs" "/"
   COMMAND "adb" "shell" "mount" "-o" "rw,relatime,barrier=1,data=ordered,remount" "-t" "ext4" "/system")
 
-ADD_CUSTOM_TARGET(adbjavaln
+ADD_CUSTOM_TARGET(adbjavaon
   COMMAND "adb" "shell" "ln" "-s" "/dev/socket/rild" "/dev/socket/rild2")
 
-ADD_CUSTOM_TARGET(adbjavaunln
+ADD_CUSTOM_TARGET(adbjavaoff
   COMMAND "adb" "shell" "rm" "/dev/socket/rild2"
   COMMAND "adb" "shell" "killall" "com.android.phone"
   )

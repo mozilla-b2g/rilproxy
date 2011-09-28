@@ -78,6 +78,30 @@ rild-debug socket is provided by rild. This socket responds to a
 different set of commands, in order to inject RIL events into the ril
 core. It's mainly used for testing new ril implementations.
 
+* Tools
+
+To automate some of the common tasks involved with resetting processes
+on the phone, watching logs, etc... I've made a few different custom
+targets in the CMake file. These can be run using 
+
+make [target_name]
+
+in the out-of-source build directory. The targets are:
+
+- adbpush - Push b2g-dialer-test binary to phone.
+- adbdial - Run b2g-dialer-test. Currently does not work.
+- adbrwmount - Remount / and /system as rw for duration of session
+  (i.e. until next reboot)
+- adbjavaon/adbjavaoff - With the patch to the android code, java now
+  tries to connect to /dev/socket/rild2 instead of /dev/socket/rild.
+  This allows us to connect to rild via our own process when needed,
+  but also means we can symlink rild2 to rild when we want to watch
+  how android interacts with something (useful for analyzing code
+  flow). adbjavaon creates the symlink (at which point b2g-dialer-test
+  binary will fail due to needing exclusing socket access). adbjavaoff
+  will remove the symlink and kill the android phone process, causing
+  it to drop its connection to the socket.
+
 * Goals
 
 - Create patch to make android radio core not connect to rild socket
