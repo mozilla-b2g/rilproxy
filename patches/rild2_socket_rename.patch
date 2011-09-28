@@ -1,0 +1,13 @@
+diff --git telephony/java/com/android/internal/telephony/RIL.java telephony/java/com/android/internal/telephony/RIL.java
+index 09a4506..00c201b 100644
+--- glue/gonk/frameworks/base/telephony/java/com/android/internal/telephony/RIL.java
++++ glue/gonk/frameworks/base/telephony/java/com/android/internal/telephony/RIL.java
+@@ -255,7 +255,7 @@ public final class RIL extends BaseCommands implements CommandsInterface {
+     static final int RESPONSE_SOLICITED = 0;
+     static final int RESPONSE_UNSOLICITED = 1;
+ 
+-    static final String SOCKET_NAME_RIL = "rild";
++    static final String SOCKET_NAME_RIL = "rild2";
+ 
+     static final int SOCKET_OPEN_RETRY_MILLIS = 4 * 1000;
+ 
