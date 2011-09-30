@@ -6,6 +6,7 @@
 #include <cutils/sockets.h>
 #include <binder/Parcel.h>
 #include <telephony/ril.h>
+#include <utils/String8.h>
 
 const char *
 requestToString(int request) {
@@ -208,7 +209,41 @@ int main(int argc, char **argv) {
 	fds.events = POLLIN;
 	fds.revents = 0;
 
+	printf("Turning on radio\n");
+
+	uint32_t header;
 	android::Parcel p;
+
+	p.writeInt32(RIL_REQUEST_RADIO_POWER);
+	p.writeInt32(1235);
+	p.writeInt32(1);
+	p.writeInt32(1);
+	
+	header = htonl(p.dataSize());
+	printf("Writing header\n");
+	ret = blockingWrite(fd, (void *)&header, sizeof(header));
+	printf("Wrote header %d\n", ret);
+	ret = blockingWrite(fd, (void *)p.data(), p.dataSize());
+	printf("Wrote data %d %d\n", p.dataSize(), ret);
+
+	sleep(2000);
+
+	printf("Dialing\n");
+	p.writeInt32(RIL_REQUEST_DIAL);
+	p.writeInt32(1234);
+	p.writeInt32(1);
+	android::String8 addr("18888888888");
+	p.writeString8(addr);
+	p.writeInt32(0);
+	p.writeInt32(0);
+	
+	header = htonl(p.dataSize());
+	printf("Writing header\n");
+	ret = blockingWrite(fd, (void *)&header, sizeof(header));
+	printf("Wrote header %d\n", ret);
+	ret = blockingWrite(fd, (void *)p.data(), p.dataSize());
+	printf("Wrote data %d %d\n", p.dataSize(), ret);
+
 	int data_size;
 	int msg_type;
 	while(1)
@@ -223,12 +258,32 @@ int main(int argc, char **argv) {
 		}
 		printf("\n");
 		uint32_t data_size;
-		memcpy((void*)&data_size, data, sizeof(uint32_t));
+		memcpy((void*)&data_size, data, sizeof(uint32_t));		
 		data_size = ntohl(data_size);
 		printf("Packet size %d\n", data_size);
+		bool delayed_read = false;
+		if(data_size > ret)
+		{
+			delayed_read = true;
+			printf("Waiting on reset of packet...\n");
+			while(!poll(&fds, 1, 1))
+				continue;
+			ret = read(fd, data, 1024);
+			// printf("Read %d\n", ret);
+			// for(int i = 0; i < ret; ++i)
+			// {
+			// 	printf("0x%.02x ", data[i]);
+			// }
+			// printf("\n");
+			// memcpy((void*)&data_size, data, sizeof(uint32_t));		
+			// data_size = ntohl(data_size);
+		}
 		p.setDataSize(data_size);
-		p.setData((uint8_t*)(data + sizeof(uint32_t)), data_size);
-		printf("SOC 1/UNSOC 0 = %d\n", p.readInt32());
+		if(delayed_read)
+			p.setData((uint8_t*)(data), data_size);
+		else
+			p.setData((uint8_t*)(data + sizeof(uint32_t)), data_size);
+		printf("SOC 0/UNSOC 1 = %d\n", p.readInt32());
 		int32_t req;
 		p.readInt32(&req);
 		printf("Message Type = %d %s\n", req, requestToString(req));
