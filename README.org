@@ -1,10 +1,19 @@
 * B2G Dialer Test
+** Description
 
 This program demonstrates how to communicate with the B2G RIL daemon,
 for dialing the phone, dealing with SMS, and other actions requiring
 access to the cell phone radio.
 
-* Low Level Access
+** Goals
+
+- Create patch to make android radio core not connect to rild socket
+- Figure out/find documentation for commands for ril events
+- Create function that will dial phone via socket calls
+- Create function that will wait for an SMS message (async) via sockets
+
+* Talking to the Radio
+** Low Level Access
 
 Kernel access for specific phones are vendor specific, included in the
 phone's firmware distribution. To access these drivers, android uses
@@ -17,7 +26,7 @@ Source code for libril and rild is available in the B2G checkout as
 
 glue/gonk/hardware/ril
 
-* Socket Access
+** Socket Access
 
 In order to access libril, android uses an ipc socket interface to the
 rild daemon. The daemon simply creates a socket named "rild" and
@@ -37,7 +46,7 @@ strategy is to change the socket name in the RIL.java file to
 something other than "rild" (since we can't recompile vendor specific
 rild). 
 
-* Android Access
+** Android Access
 
 Android code specific to RIL communication is in 
 
@@ -57,12 +66,28 @@ Each RIL Socket Write has the following format:
   - PARCEL BEGINS AFTER THIS FIELD
 - Byte 0x04 - uint32_t - RIL Event ID (IDs available in glue/gonk/hardware/ril/include/telephony/ril.h)
 - Byte 0x08 - uint32_t - Packet Serial Number (Used to track send/receive order)
-- Byte 0x12 - void* - Data for event
+- Byte 0x0c - void* - Data for event
+
+Event Data:
+- Byte 0x0c - uint32_t - 0 if Solicited, 1 if Unsolicited
+- Byte 0x10 - ? - All following bytes are packet specific
 
 The expectations of each RIL event are outlined in the comments for
 the fields in the ril.h file.
 
-* Debugging
+* Phone Workflow
+** Initialization
+The initialization step is required to turn the radio on.
+
+- Program connects to rild socket
+- Radio sends UNSOL_RESPONSE_RADIO_STATE_CHANGED message
+- Program: SCREEN_STATE to TRUE
+- Program: OEM_HOOK_STRINGS
+- Program: SET_SUPP_SVC_NOTIFICATION
+- Program: RADIO_POWER (Turns radio on!)
+
+* Utilities and Tips
+** Debugging
 
 The command "logcat -b radio" in the android shell will print all radio messages
 
@@ -78,7 +103,7 @@ rild-debug socket is provided by rild. This socket responds to a
 different set of commands, in order to inject RIL events into the ril
 core. It's mainly used for testing new ril implementations.
 
-* Tools
+** Tools
 
 To automate some of the common tasks involved with resetting processes
 on the phone, watching logs, etc... I've made a few different custom
@@ -102,14 +127,9 @@ in the out-of-source build directory. The targets are:
   will remove the symlink and kill the android phone process, causing
   it to drop its connection to the socket.
 
-* Goals
-
-- Create patch to make android radio core not connect to rild socket
-- Figure out/find documentation for commands for ril events
-- Create function that will dial phone via socket calls
-- Create function that will wait for an SMS message (async) via sockets
-
-* Relevant Websites
+** Relevant Websites
 - [[http://i-miss-erin.blogspot.com/2009/11/radio-layer-interface-in-android.html][Hooking up Android to a GSM radio on the BeagleBoard]]
 - [[http://www.netmite.com/android/mydroid/development/pdk/docs/telephony.html][libril Documentation]]
 - [[https://groups.google.com/forum/#!topic/android-porting/lo90a3Bb1nA][Small thread on ril stuff]]
+
+
