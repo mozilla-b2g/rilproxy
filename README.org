@@ -85,7 +85,15 @@ The initialization step is required to turn the radio on.
 - Program: OEM_HOOK_STRINGS
 - Program: SET_SUPP_SVC_NOTIFICATION
 - Program: RADIO_POWER (Turns radio on!)
-
+** Idling
+** Dialing
+- Program: ?!?
+- Program: DIAL
+(Just dialing doesn't work)
+** Call Receive
+** SMS Receive
+- Radio: UNSOL_RESPONSE_NEW_SMS
+- Program: RIL_REQUEST_SMS_ACKNOWLEDGE
 * Utilities and Tips
 ** Debugging
 
