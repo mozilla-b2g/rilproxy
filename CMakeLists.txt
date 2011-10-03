@@ -371,7 +371,14 @@ ADD_CUSTOM_TARGET(adbrwmount
 ADD_CUSTOM_TARGET(adbjavaon
   COMMAND "adb" "shell" "ln" "-s" "/dev/socket/rild" "/dev/socket/rild2")
 
+ADD_DEPENDENCIES(adbjavaon adbrwmount)
+
 ADD_CUSTOM_TARGET(adbjavaoff
   COMMAND "adb" "shell" "rm" "/dev/socket/rild2"
   COMMAND "adb" "shell" "killall" "com.android.phone"
   )
+
+ADD_CUSTOM_TARGET(adbjavadialer
+  COMMAND "adb" "shell" "sh" "/system/bin/am" "start" "-a" "android.intent.action.MAIN" "-n" "com.android.contacts/.TwelveKeyDialer"
+  )
+ADD_DEPENDENCIES(adbjavadialer adbjavaon)
