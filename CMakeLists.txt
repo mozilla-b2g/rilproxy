@@ -344,10 +344,12 @@ IF(NOT USING_ANDROID_GCC)
 ENDIF()
 
 SET(LIBS "cutils" "binder")
+SET(GONK $ENV{GONK})
+SET(NDK $ENV{NDK})
 
-INCLUDE_DIRECTORIES("/home/kmachulis/code/mozbuild/B2G/glue/gonk/system/core/include/" "/home/kmachulis/code/mozbuild/B2G/glue/gonk/hardware/ril/include" "/home/kmachulis/code/mozbuild/B2G/glue/gonk/frameworks/base/include" "/home/kmachulis/code/mozbuild/android-ndk-r6b/sources/cxx-stl/system/include/")
+INCLUDE_DIRECTORIES("${GONK}/system/core/include/" "${GONK}/hardware/ril/include" "${GONK}/frameworks/base/include" "${NDK}/sources/cxx-stl/system/include/")
 
-LINK_DIRECTORIES("/home/kmachulis/code/mozbuild/B2G/glue/gonk/out/host/target/product/galaxys2/obj/STATIC_LIBRARIES/libcutils_intermediates/" "/home/kmachulis/code/mozbuild/B2G/glue/gonk/out/target/product/galaxys2/obj/lib/")
+LINK_DIRECTORIES("${GONK}/host/target/product/galaxys2/obj/STATIC_LIBRARIES/libcutils_intermediates/" "${GONK}/out/target/product/galaxys2/obj/lib/")
 
 BUILDSYS_BUILD_EXE(
   NAME b2g-dialer-test
@@ -384,7 +386,7 @@ ADD_CUSTOM_TARGET(adbjavadialer
 ADD_DEPENDENCIES(adbjavadialer adbjavaon)
 
 ADD_CUSTOM_TARGET(rebuildphone
-  WORKING_DIRECTORY "/home/kmachulis/code/mozbuild/B2G/glue/gonk"
+  WORKING_DIRECTORY "${GONK}"
   COMMAND "make" "-j" "16" "framework"  
   COMMAND "adb" "push" "out/target/product/generic/system/framework/framework.jar" "/system/framework"
   COMMAND "adb" "reboot"
