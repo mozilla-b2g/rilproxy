@@ -382,3 +382,11 @@ ADD_CUSTOM_TARGET(adbjavadialer
   COMMAND "adb" "shell" "sh" "/system/bin/am" "start" "-a" "android.intent.action.MAIN" "-n" "com.android.contacts/.TwelveKeyDialer"
   )
 ADD_DEPENDENCIES(adbjavadialer adbjavaon)
+
+ADD_CUSTOM_TARGET(rebuildphone
+  WORKING_DIRECTORY "/home/kmachulis/code/mozbuild/B2G/glue/gonk"
+  COMMAND "make" "-j" "16" "framework"  
+  COMMAND "adb" "push" "out/target/product/generic/system/framework/framework.jar" "/system/framework"
+  COMMAND "adb" "reboot"
+)
+ADD_DEPENDENCIES(rebuildphone adbrwmount)
