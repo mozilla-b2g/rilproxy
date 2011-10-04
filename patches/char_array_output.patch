@@ -1,0 +1,98 @@
+diff --git telephony/java/com/android/internal/telephony/RIL.java telephony/java/com/android/internal/telephony/RIL.java
+index 09a4506..644d3ad 100644
+--- telephony/java/com/android/internal/telephony/RIL.java
++++ telephony/java/com/android/internal/telephony/RIL.java
+@@ -255,7 +255,7 @@ public final class RIL extends BaseCommands implements CommandsInterface {
+     static final int RESPONSE_SOLICITED = 0;
+     static final int RESPONSE_UNSOLICITED = 1;
+ 
+-    static final String SOCKET_NAME_RIL = "rild";
++    static final String SOCKET_NAME_RIL = "rild2";
+ 
+     static final int SOCKET_OPEN_RETRY_MILLIS = 4 * 1000;
+ 
+@@ -352,6 +352,28 @@ public final class RIL extends BaseCommands implements CommandsInterface {
+ 
+                         s.getOutputStream().write(dataLength);
+                         s.getOutputStream().write(data);
++						if (RILJ_LOGD)
++							{
++								// riljLog("SENDING PARCEL " + rr.mp);
++								// byte[] ba = rr.mp.marshall();
++								// rr.mp.setDataPosition(0);
++								int fullsize = data.length +dataLength.length;
++								String output = "char OUT_" + RIL.requestToString(rr.mRequest) + "_" + rr.mSerial + "[" + fullsize + "] = {";
++								for(int i = 0; i < dataLength.length; ++i)
++									{
++										output += String.format("%#02x, ", dataLength[i]);
++										
++									}
++								for(int i = 0; i < data.length; ++i)
++									{
++										output += String.format("%#02x, ", data[i]);
++										
++									}
++								output += "};";
++								riljLog(output);
++							}
++		
++
+                     } catch (IOException ex) {
+                         Log.e(LOG_TAG, "IOException", ex);
+                         req = findAndRemoveRequestFromList(rr.mSerial);
+@@ -489,7 +511,7 @@ public final class RIL extends BaseCommands implements CommandsInterface {
+             offset += countRead;
+             remaining -= countRead;
+         } while (remaining > 0);
+-
++		
+         return messageLength;
+     }
+ 
+@@ -558,19 +580,35 @@ public final class RIL extends BaseCommands implements CommandsInterface {
+                         Parcel p;
+ 
+                         length = readRilMessage(is, buffer);
+-
++						
+                         if (length < 0) {
+                             // End-of-stream reached
+                             break;
+                         }
+ 
++
+                         p = Parcel.obtain();
+                         p.unmarshall(buffer, 0, length);
+                         p.setDataPosition(0);
+-
++						
+                         //Log.v(LOG_TAG, "Read packet: " + length + " bytes");
++						if (RILJ_LOGD)
++							{
++								int unknown = p.readInt();
++								int serial = p.readInt();
++								String output = "char IN_" + serial + "[" + length + "] = {";
++								for(int i = 0; i < length; ++i)
++									{
++										output += String.format("%#02x, ", buffer[i]);
++										
++									}
++								output += "};";
++								riljLog(output);
++								p.setDataPosition(0);
++							}
+ 
+                         processResponse(p);
++						
+                         p.recycle();
+                     }
+                 } catch (java.io.IOException ex) {
+@@ -2068,7 +2106,7 @@ public final class RIL extends BaseCommands implements CommandsInterface {
+         Message msg;
+ 
+         msg = mSender.obtainMessage(EVENT_SEND, rr);
+-
++		
+         acquireWakeLock();
+ 
+         msg.sendToTarget();
