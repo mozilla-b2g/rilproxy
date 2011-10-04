@@ -349,7 +349,7 @@ SET(NDK $ENV{NDK})
 
 INCLUDE_DIRECTORIES("${GONK}/system/core/include/" "${GONK}/hardware/ril/include" "${GONK}/frameworks/base/include" "${NDK}/sources/cxx-stl/system/include/")
 
-LINK_DIRECTORIES("${GONK}/host/target/product/galaxys2/obj/STATIC_LIBRARIES/libcutils_intermediates/" "${GONK}/out/target/product/galaxys2/obj/lib/")
+LINK_DIRECTORIES("${GONK}/out/target/product/galaxys2/obj/STATIC_LIBRARIES/libcutils_intermediates/" "${GONK}/out/target/product/galaxys2/obj/lib/")
 
 BUILDSYS_BUILD_EXE(
   NAME b2g-dialer-test
