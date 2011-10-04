@@ -5,7 +5,7 @@
 #export NDK=/home/kmachulis/code/mozbuild/android-ndk-r6b/
 #export GONK=/home/kmachulis/code/mozbuild/B2G/glue/gonk/
 export NDK=$ANDROID_NDK
-export GONK=/home/ferjm/dev/B2G/glue/gonk/
+export GONK=$GONK
 
 SYSROOT=$NDK/platforms/android-9/arch-arm
 

@@ -343,7 +343,7 @@ IF(NOT USING_ANDROID_GCC)
   MESSAGE(FATAL_ERROR "It does not look like you have run android_env.sh yet. Please make sure to set the configuration variables correctly and run it before trying to run cmake, then delete your CMakeCache.txt file and run cmake again.")
 ENDIF()
 
-SET(LIBS "cutils" "binder")
+SET(LIBS "cutils" "binder" "media")
 SET(GONK $ENV{GONK})
 SET(NDK $ENV{NDK})
 
@@ -354,6 +354,13 @@ LINK_DIRECTORIES("${GONK}/host/target/product/galaxys2/obj/STATIC_LIBRARIES/libc
 BUILDSYS_BUILD_EXE(
   NAME b2g-dialer-test
   SOURCES "src/main.cpp"
+  CXX_FLAGS "-fno-exceptions"
+  LINK_LIBS ${LIBS}
+  )
+
+BUILDSYS_BUILD_EXE(
+  NAME b2g-audio-test
+  SOURCES "src/audio.cpp"
   CXX_FLAGS "-fno-exceptions"
   LINK_LIBS ${LIBS}
   )
