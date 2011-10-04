@@ -1,5 +1,5 @@
 diff --git telephony/java/com/android/internal/telephony/RIL.java telephony/java/com/android/internal/telephony/RIL.java
-index 09a4506..644d3ad 100644
+index 09a4506..7ec029d 100644
 --- telephony/java/com/android/internal/telephony/RIL.java
 +++ telephony/java/com/android/internal/telephony/RIL.java
 @@ -255,7 +255,7 @@ public final class RIL extends BaseCommands implements CommandsInterface {
@@ -49,7 +49,7 @@ index 09a4506..644d3ad 100644
          return messageLength;
      }
  
-@@ -558,19 +580,35 @@ public final class RIL extends BaseCommands implements CommandsInterface {
+@@ -558,19 +580,51 @@ public final class RIL extends BaseCommands implements CommandsInterface {
                          Parcel p;
  
                          length = readRilMessage(is, buffer);
@@ -69,15 +69,31 @@ index 09a4506..644d3ad 100644
                          //Log.v(LOG_TAG, "Read packet: " + length + " bytes");
 +						if (RILJ_LOGD)
 +							{
-+								int unknown = p.readInt();
-+								int serial = p.readInt();
-+								String output = "char IN_" + serial + "[" + length + "] = {";
-+								for(int i = 0; i < length; ++i)
++								int type = p.readInt();
++								String output = "char ";
++								if(type == RESPONSE_UNSOLICITED)
 +									{
-+										output += String.format("%#02x, ", buffer[i]);
++										int response = p.readInt();
++										output += "IN_" + RIL.responseToString(response) + "[" + length + "] = {";
++										for(int i = 0; i < length; ++i)
++											{
++												output += String.format("%#02x, ", buffer[i]);
++												
++											}
++										output += "};";
 +										
 +									}
-+								output += "};";
++								else if (type == RESPONSE_SOLICITED)
++									{
++										int serial = p.readInt();
++										output += "IN_" + serial + "[" + length + "] = {";
++										for(int i = 0; i < length; ++i)
++											{
++												output += String.format("%#02x, ", buffer[i]);
++												
++											}
++										output += "};";
++									}
 +								riljLog(output);
 +								p.setDataPosition(0);
 +							}
@@ -87,7 +103,7 @@ index 09a4506..644d3ad 100644
                          p.recycle();
                      }
                  } catch (java.io.IOException ex) {
-@@ -2068,7 +2106,7 @@ public final class RIL extends BaseCommands implements CommandsInterface {
+@@ -2068,7 +2122,7 @@ public final class RIL extends BaseCommands implements CommandsInterface {
          Message msg;
  
          msg = mSender.obtainMessage(EVENT_SEND, rr);
