@@ -1,9 +1,7 @@
 #include <utils/Log.h>
 #include <media/AudioSystem.h>
 
-#ifndef LOG_TAG
 #define LOG_TAG "B2G-AUDIO-TEST"
-#endif
 
 using namespace android;
 
@@ -16,7 +14,7 @@ int main(int argc, char **argv) {
   status_t status;
   bool state = false;
 
-  if(strcmp(argv[1],"mic")) {
+  if(!strcmp(argv[1],"mic")) {
     status = AudioSystem::isMicrophoneMuted(&state);
     LOGI("AudioSystem::isMicrophoneMuted() = %s.\n", state ? "true" : "false");
 
@@ -39,13 +37,13 @@ int main(int argc, char **argv) {
     status = AudioSystem::isMicrophoneMuted(&state);
     LOGI("AudioSystem::isMicrophoneMuted() = %s.\n", state ? "true" : "false");
     
-  } else if (strcmp(argv[1],"speaker")) {
+  } else if (!strcmp(argv[1],"speaker")) {
     status = AudioSystem::setMode(AudioSystem::MODE_RINGTONE); 
     LOGI("AudioSystem::setMode(AudioSystem::MODE_RINGTONE) = %d.\n", status);
     status = AudioSystem::getMasterMute(&state);
     LOGI("AudioSystem::getMasterMute() = %d. %s\n", status, state? "true":"false");
     status = AudioSystem::setMasterMute(!state);
-    LOGI("AudioSystem::setMasterMute() = %d. %s\n", status);    
+    LOGI("AudioSystem::setMasterMute() = %d.\n", status);    
     status = AudioSystem::getMasterMute(&state);
     LOGI("AudioSystem::getMasterMute() = %d. %s\n", status, state? "true":"false"); 
   }
