@@ -1,8 +1,6 @@
 #include <utils/Log.h>
 #include <media/AudioSystem.h>
 
-#define LOG_TAG "B2G-AUDIO-TEST"
-
 using namespace android;
 
 int main(int argc, char **argv) {

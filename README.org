@@ -95,6 +95,12 @@ The initialization step is required to turn the radio on.
 - Radio: UNSOL_RESPONSE_NEW_SMS
 - Program: RIL_REQUEST_SMS_ACKNOWLEDGE
 * Utilities and Tips
+** Building
+- Set the path of your local Android NDK and B2G, i.e. export NDK=/opt/android-ndk-r6b
+- Run scripts/android_env.sh
+- cmake .
+- make
+
 ** Debugging
 
 The command "logcat -b radio" in the android shell will print all radio messages
@@ -139,5 +145,7 @@ in the out-of-source build directory. The targets are:
 - [[http://i-miss-erin.blogspot.com/2009/11/radio-layer-interface-in-android.html][Hooking up Android to a GSM radio on the BeagleBoard]]
 - [[http://www.netmite.com/android/mydroid/development/pdk/docs/telephony.html][libril Documentation]]
 - [[https://groups.google.com/forum/#!topic/android-porting/lo90a3Bb1nA][Small thread on ril stuff]]
+- [[http://www.slideshare.net/ssusere3af56/android-radio-layer-interface][Android Radio Interface Layer]]
+- [[http://www.slideshare.net/dpsmarques/android-telephony-stack][Android Telephony Stack]]
 
 
