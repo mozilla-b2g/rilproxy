@@ -359,19 +359,19 @@ BUILDSYS_BUILD_EXE(
   )
 
 BUILDSYS_BUILD_EXE(
-  NAME b2g-audio-test
-  SOURCES "src/audio.cpp"
+  NAME b2g-dialer-forward
+  SOURCES "src/b2g-dialer-forward.cpp"
   CXX_FLAGS "-fno-exceptions"
   LINK_LIBS ${LIBS}
   )
 
 ADD_CUSTOM_TARGET(adbpush
-  COMMAND "adb" "push" "b2g-dialer-test" "/data/local/tmp/")
+  COMMAND "adb" "push" "b2g-dialer-forward" "/data/local/tmp/")
 
-ADD_DEPENDENCIES(adbpush b2g-dialer-test)
+ADD_DEPENDENCIES(adbpush b2g-dialer-forward)
 
 ADD_CUSTOM_TARGET(adbdial
-  COMMAND "adb" "shell" "su -c /data/local/tmp/b2g-dialer-test radio")
+  COMMAND "adb" "shell" "su -c /data/local/tmp/b2g-dialer-forward radio")
 
 ADD_CUSTOM_TARGET(adbrwmount
   COMMAND "adb" "shell" "mount" "-o" "rw,remount,relatime" "-t" "rootfs" "/"
