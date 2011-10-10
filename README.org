@@ -47,7 +47,6 @@ something other than "rild" (since we can't recompile vendor specific
 rild). 
 
 ** Android Access
-
 Android code specific to RIL communication is in 
 
 glue/gonk/frameworks/base/telephony/java/com/android/internal/telephony/RIL.java
@@ -59,6 +58,24 @@ glue/gonk/frameworks.
 
 To access sockets via C, android uses libcutils, also available in
 glue/gonk/frameworks.
+** Parcel Formats
+Parcels contain information about the transaction that they are a part
+of, as well as event data.
+
+Event data will be one of the follow types:
+
+- Void - No return
+- Int List - First int is the number of ints in the list, followed by the ints
+-- Byte 0x0c - uint32_t - number of ints in the packet
+-- Byte 0x10 - uint32_t* - list of ints
+- String - A single string (ASCII)
+-- Byte 0x0c - uint32_t - length of string
+-- Byte 0x10 - char* - string of length specified
+- Strings - An array of strings (ASCII)
+-- Byte 0x0c - uint32_t - number of strings
+-- Byte 0x10 - Strings - strings in format listed for single string (size + string)
+- Custom Struct - A set of different types specific to the message (SMS messages, call lists, etc...)
+*** RIL Parcel - Process -> rild
 
 Each RIL Socket Write has the following format:
 
@@ -66,11 +83,35 @@ Each RIL Socket Write has the following format:
   - PARCEL BEGINS AFTER THIS FIELD
 - Byte 0x04 - uint32_t - RIL Event ID (IDs available in glue/gonk/hardware/ril/include/telephony/ril.h)
 - Byte 0x08 - uint32_t - Packet Serial Number (Used to track send/receive order)
-- Byte 0x0c - void* - Data for event
+- Byte 0x0c - void* - Event Data
 
-Event Data:
-- Byte 0x0c - uint32_t - 0 if Solicited, 1 if Unsolicited
-- Byte 0x10 - ? - All following bytes are packet specific
+*** RIL Parcel - rild -> Process (solicited reply)
+
+Each RIL Socket Read (for a solicited response) has the following format:
+
+- Byte 0x00 - uint32_t - Header (Size of Following Parcel)
+  - PARCEL BEGINS AFTER THIS FIELD
+- Byte 0x04 - uint32_t - 0 (To signify it is a reply to a previously sent solicited request)
+- Byte 0x08 - uint32_t - Packet Serial Number (Used to track send/receive order)
+- Byte 0x0c - void* - Event Data
+
+It is expected that the client maintains a list of previously made
+solicited requests to match the replies to, via the serial field.
+
+The expectations of each RIL event are outlined in the comments for
+the fields in the ril.h file.
+
+*** RIL Parcel - rild -> Process (unsolicited event)
+Each RIL Socket Read (for a solicited response) has the following format:
+
+- Byte 0x00 - uint32_t - Header (Size of Following Parcel)
+  - PARCEL BEGINS AFTER THIS FIELD
+- Byte 0x04 - uint32_t - 1 (To signify it is a reply to a previously sent solicited request)
+- Byte 0x08 - uint32_t - RIL Event ID (IDs available in glue/gonk/hardware/ril/include/telephony/ril.h)
+- Byte 0x0c - void* - Event Data
+
+The client responds (as needed) to unsolicited events by sending a
+solicited event, which follows the outline mentioned above.
 
 The expectations of each RIL event are outlined in the comments for
 the fields in the ril.h file.
