@@ -68,10 +68,10 @@ Event data will be one of the follow types:
 - Int List - First int is the number of ints in the list, followed by the ints
   - Byte 0x0c - uint32_t - number of ints in the packet
   - Byte 0x10 - uint32_t* - list of ints
-- String - A single string (ASCII)
+- String - A single string (16-bit)
   - Byte 0x0c - uint32_t - length of string
-  - Byte 0x10 - char* - string of length specified
-- Strings - An array of strings (ASCII)
+  - Byte 0x10 - wchar_t* - string of length specified
+- Strings - An array of strings (16-bit)
   - Byte 0x0c - uint32_t - number of strings
   - Byte 0x10 - Strings - strings in format listed for single string (size + string)
 - Custom Struct - A set of different types specific to the message (SMS messages, call lists, etc...)
@@ -121,12 +121,17 @@ the fields in the ril.h file.
 The initialization step is required to turn the radio on.
 
 - Program connects to rild socket
-- Radio sends UNSOL_RESPONSE_RADIO_STATE_CHANGED message
+- Radio: UNSOL_RESPONSE_RADIO_STATE_CHANGED with radio status
 - Program: SCREEN_STATE to TRUE
 - Program: OEM_HOOK_STRINGS
 - Program: SET_SUPP_SVC_NOTIFICATION
 - Program: RADIO_POWER (Turns radio on!)
 ** Idling
+** Service Update
+- Radio: UNSOL_RESPONSE_NETWORK_STATE_CHANGED
+- Program: OPERATOR
+- Program: REGISTRATION_STATE
+- Program: GPRS_REGISTRATION_STATE
 ** Dialing
 - Program: ?!?
 - Program: DIAL
