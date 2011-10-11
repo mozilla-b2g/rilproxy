@@ -1,3 +1,4 @@
+import array
 import socket
 import select
 import sys
@@ -35,10 +36,7 @@ class Phone:
             self.receiveParcel()            
 
     def close(self):
-        p = CommandParcel(CommandParcel.REQUEST_TYPES["RIL_REQUEST_RADIO_POWER"])
-        p.writeInt(1)
-        p.writeInt(1)
-        self.sendParcel(p)
+        self.setScreenState(0)
         self.waitForAllReturns()
         self.socket.close()
 
@@ -53,26 +51,54 @@ class Phone:
         self.socket.send(s)
 
     def receiveParcel(self):
-        data = self.socket.recv(8192)
-
-        i = 0
-        while i < len(data):            
-            size = socket.ntohl(struct.unpack_from("I", data[0+i:4+i])[0])
-            # print size
-            # print ["0x%.02x" % ord(x) for x in data[4:]]
+        data = Parcel()
+        buf = self.socket.recv(8192)
+        data.setBuffer(buf)
+        print ["0x%.02x" % ord(x) for x in buf]
+        while data.dataLeft() > 0:
+            size = socket.ntohl(struct.unpack_from("I", data.readRaw(4))[0])
+            print "Parcel size: %d Data Left: %d" % (size, data.dataLeft())
+            # Since packet size and packets are sent as seperate
+            # writes, sometimes this requires two fetches
+            if data.dataLeft() == 0:
+                buf = self.socket.recv(8192)
+                data = Parcel()
+                data.setBuffer(buf)
             p = CommandParcel()
-            p.setBuffer(data[4:])
+            b = data.readRaw(size)
+            p.setBuffer(b)
             p.parseParcel(self._packets)
-            # if p.pid in self._packets.keys():
-            #     self._packets.pop(p.pid)
             print p.parcelToString()
-            i += size + 4
-            if p.request_type >= 1000:
-                if p.request_type == CommandParcel.REQUEST_TYPES["RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED"]:
-                    self.unsolRadioStateChanged(p)
-                elif p.request_type == CommandParcel.REQUEST_TYPES["RIL_UNSOL_RESPONSE_NETWORK_STATE_CHANGED"]:
-                    self.unsolNetworkStateChanged(p)
+            print ["0x%.02x" % ord(x) for x in b]
+            if p.pid in self._packets.keys():
+                self._packets.pop(p.pid)
+            if p.request_type in (CommandParcel.REQUEST_TYPES["RIL_REQUEST_OPERATOR"], CommandParcel.REQUEST_TYPES["RIL_REQUEST_REGISTRATION_STATE"], CommandParcel.REQUEST_TYPES["RIL_REQUEST_GPRS_REGISTRATION_STATE"]):
+                p.readInt()
+                self.outputStrings(p)
+            elif p.request_type in (CommandParcel.REQUEST_TYPES["RIL_REQUEST_GET_IMEI"], CommandParcel.REQUEST_TYPES["RIL_REQUEST_GET_IMEISV"], CommandParcel.REQUEST_TYPES["RIL_REQUEST_BASEBAND_VERSION"]):
+                p.readInt()
+                self.outputString(p)                
+            elif p.request_type == CommandParcel.REQUEST_TYPES["RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED"]:
+                self.unsolRadioStateChanged(p)
+            elif p.request_type == CommandParcel.REQUEST_TYPES["RIL_UNSOL_RESPONSE_NETWORK_STATE_CHANGED"]:
+                self.unsolNetworkStateChanged(p)
 
+    def outputString(self, p):
+        string_length = p.readInt()
+        if string_length == 4294967295:
+            print "NULL STRING"
+            return
+        string_length = string_length + 1
+        if string_length % 2 == 1:
+            string_length = string_length + 1
+        string = p.readRaw(string_length*2)    
+        print "%d : %s" % (string_length, string.decode('utf-16')) #["0x%.02x" % ord(x) for x in string]) 
+
+    def outputStrings(self, p):        
+        string_count = p.readInt()
+        for i in range(0, string_count):            
+            self.outputString(p)
+            
     def unsolRadioStateChanged(self, p):
         state = p.readInt()
         print "RADIO STATE: %s" % (self.RADIO_STATE[state])
@@ -81,17 +107,36 @@ class Phone:
         self.sendParcel(CommandParcel(CommandParcel.REQUEST_TYPES["RIL_REQUEST_REGISTRATION_STATE"]))
         self.sendParcel(CommandParcel(CommandParcel.REQUEST_TYPES["RIL_REQUEST_GPRS_REGISTRATION_STATE"]))
         self.sendParcel(CommandParcel(CommandParcel.REQUEST_TYPES["RIL_REQUEST_OPERATOR"]))
-        
-    def initializePhone(self):
+
+    def setScreenState(self, state):
         p = CommandParcel(CommandParcel.REQUEST_TYPES["RIL_REQUEST_SCREEN_STATE"])
         p.writeInt(1)
-        p.writeInt(1)
+        p.writeInt(state)
         self.sendParcel(p)
-        print "sending!"
+
+    def setRadioPower(self, state):
         p = CommandParcel(CommandParcel.REQUEST_TYPES["RIL_REQUEST_RADIO_POWER"])
         p.writeInt(1)
-        p.writeInt(1)
+        p.writeInt(state)
         self.sendParcel(p)
+
+    def setNetworkType(self, network_type):
+        p = CommandParcel(CommandParcel.REQUEST_TYPES["RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE"])
+        p.writeInt(1)
+        p.writeInt(network_type)
+        self.sendParcel(p)
+
+    def getPhoneIdentity(self):        
+        self.sendParcel(CommandParcel(CommandParcel.REQUEST_TYPES["RIL_REQUEST_GET_IMEI"]))
+        self.sendParcel(CommandParcel(CommandParcel.REQUEST_TYPES["RIL_REQUEST_GET_IMEISV"]))
+        self.sendParcel(CommandParcel(CommandParcel.REQUEST_TYPES["RIL_REQUEST_BASEBAND_VERSION"]))
+
+    def initializePhone(self):
+        self.setScreenState(1)
+        self.setRadioPower(1)
+        self.setNetworkType(1) # GSM only
+        self.getPhoneIdentity()
+        self.sendParcel(CommandParcel(CommandParcel.REQUEST_TYPES["RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE"]))
 
     def dialPhone(self):
         pass
@@ -100,6 +145,9 @@ class Parcel:
     def __init__(self):
         self._buffer = ""
         self._position = 0
+
+    def dataLeft(self):
+        return len(self._buffer) - self._position
         
     def setPosition(self, pos):
         self._position = pos
@@ -114,6 +162,11 @@ class Parcel:
         i = struct.unpack_from("I", self._buffer[0+self._position:4+self._position])[0]
         self._position = self._position + 4
         return i
+
+    def readRaw(self, size):
+        data = self._buffer[0+self._position:size+self._position]
+        self._position += size
+        return data
 
 class CommandParcel(Parcel):
     serial = 1
@@ -263,6 +316,7 @@ class CommandParcel(Parcel):
             self.pid = CommandParcel.serial
             CommandParcel.serial = CommandParcel.serial + 1
             self.request_type = command
+            print "%d: %s" % (self.pid, self.parcelToString())
         else:
             self.response_type = None
             self.request_type = None
@@ -274,9 +328,10 @@ class CommandParcel(Parcel):
 
     def parseParcel(self, packet_matcher):
         self.response_type = self.readInt()
-        print "Response Type: %d" % (self.response_type) 
+
         if self.response_type == 0:            
             self.pid = self.readInt()
+            print "Response Type: %d Response To: %d" % (self.response_type, self.pid) 
             if self.pid in packet_matcher.keys():
                 self.request_type = packet_matcher[self.pid].request_type
         else:
@@ -284,8 +339,10 @@ class CommandParcel(Parcel):
 
     def parcelToString(self):
         l = [x[0] for x in CommandParcel.REQUEST_TYPES.items() if x[1] == self.request_type]
-        if len(l) == 0:
+        if len(l) == 0 and self.request_type is not None:
             return "CANNOT FIND %d" % (self.request_type)
+        elif self.request_type is None:
+            return "CONTINUATION OF %d" % (self.pid)
         return "%s" % l[0]
 
 def main():
@@ -293,14 +350,15 @@ def main():
     p = Phone()
     p.open()
     try:
+        p.receiveParcel()
+        if has_init is 0:
+            print "Initializing!"
+            p.initializePhone()
+            has_init = 1
         while 1:
             if not p.hasData():
                 continue
             p.receiveParcel()
-            if has_init is 0:
-                print "Initializing!"
-                p.initializePhone()
-                has_init = 1
     except KeyboardInterrupt:
         print "Closing socket"
         p.close()
