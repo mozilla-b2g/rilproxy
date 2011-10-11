@@ -1,4 +1,3 @@
-import array
 import socket
 import select
 import sys
@@ -36,6 +35,8 @@ class Phone:
             self.receiveParcel()            
 
     def close(self):
+        #self.dialPhone()
+        #self.waitForAllReturns()
         self.setScreenState(0)
         self.waitForAllReturns()
         self.socket.close()
@@ -138,8 +139,13 @@ class Phone:
         self.getPhoneIdentity()
         self.sendParcel(CommandParcel(CommandParcel.REQUEST_TYPES["RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE"]))
 
-    def dialPhone(self):
-        pass
+    def dialPhone(self, number):
+        p = CommandParcel(CommandParcel.REQUEST_TYPES["RIL_REQUEST_DIAL"])
+        p.writeString(number)
+        p.writeInt(0)
+        p.writeInt(0)
+        p.writeInt(0)
+        self.sendParcel(p)
 
 class Parcel:
     def __init__(self):
@@ -155,8 +161,19 @@ class Parcel:
     def setBuffer(self, data):
         self._buffer = data
 
+    def writeString(self, s):
+        # Kill the 0xfeff prefix
+        u16s = s.encode("utf-16")[2:] 
+        self.writeInt(len(u16s)/2)
+        self._buffer += u16s
+        # Add a null to the end
+        self._buffer += "\0".encode("utf-16")[2:]
+
+    def writeRaw(self, l):
+        self._buffer += "".join([chr(x) for x in l])
+
     def writeInt(self, i):
-        self._buffer = self._buffer + struct.pack("I", i)
+        self._buffer += struct.pack("I", i)
 
     def readInt(self):
         i = struct.unpack_from("I", self._buffer[0+self._position:4+self._position])[0]
