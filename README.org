@@ -119,30 +119,61 @@ the fields in the ril.h file.
 * Phone Workflow
 ** Initialization
 The initialization step is required to turn the radio on.
-
 - Program connects to rild socket
 - Radio: UNSOL_RESPONSE_RADIO_STATE_CHANGED with radio status
 - Program: SCREEN_STATE to TRUE
-- Program: OEM_HOOK_STRINGS
-- Program: SET_SUPP_SVC_NOTIFICATION
-- Program: RADIO_POWER (Turns radio on!)
-** Idling
-** Service Update
+- Program: RADIO_POWER (Turns radio on, if radio status is RADIO_STATE_OFF)
+** Service Status Update
 - Radio: UNSOL_RESPONSE_NETWORK_STATE_CHANGED
 - Program: OPERATOR
 - Program: REGISTRATION_STATE
 - Program: GPRS_REGISTRATION_STATE
 ** Dialing
-- Program: ?!?
+- Go through initialization and Service Status Update steps
 - Program: DIAL
 (Just dialing doesn't work)
+** Hanging Up
+- Android app usually sends REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND
+- Continually checks GET_CURRENT_CALLS, which may error the first time around? [[https://github.com/kmachulis-mozilla/b2g-dialer-test/issues/13]]
 ** Call Receive
 ** SMS Receive
 - Radio: UNSOL_RESPONSE_NEW_SMS
 - Program: RIL_REQUEST_SMS_ACKNOWLEDGE
+* Gecko Design
+For preliminary design documentation of WebTelephony/WebAPI, see [[https://wiki.mozilla.org/WebAPI/WebTelephony]]
+** Radio Base Class
+The Radio Base Class declares the basic communication function
+signatures for radios, as well as managing a queue of binary blobs
+coming from and going to the radio. It contains no knowledge of the
+blob structure, just blob length and the blobs themselves. This means
+we can push the Parcel (or whatever serialization method we decide to
+use) creation up into the Telephone class, keeping Radio in its own
+thread to deal with I/O.
+** Radio Implementation Class
+The Radio Implementation classes fill in the communications behaviors
+declared by the radio base class. This should just consist of
+opening/closing/reading/writing file descriptors for sockets, using
+libevent. The current list of communications behaviors is:
+
+- File sockets, used on the device to communicate with rild
+- Network sockets, used on the desktop to communicate with the port
+  opened by the b2g-dialer-forward utility
+** Telephone Class
+The Telephone class is responsible for 
+
+- Exposing high level functions to Javascript (Dial, Hangup, SMS,
+  etc...)
+- Providing an interface to phone status (Network Name, Signal Strength, etc...)
+- Creating and Managing data in flight from/to the radio
+
+Packet creation happens in the Telephone class, which then queues the
+serialized binary blobs to the Radio object that it owns. It also
+reads information sent from the radio, to trigger events like incoming
+calls.
 * Utilities and Tips
 ** Building
-- Set the path of your local Android NDK and B2G, i.e. export NDK=/opt/android-ndk-r6b
+- Set the path of your local Android NDK and B2G, i.e. export
+  NDK=/opt/android-ndk-r6b
 - Run scripts/android_env.sh
 - cmake .
 - make
@@ -164,7 +195,7 @@ different set of commands, in order to inject RIL events into the ril
 core. It's mainly used for testing new ril implementations.
 
 ** Tools
-
+*** ADB convenience
 To automate some of the common tasks involved with resetting processes
 on the phone, watching logs, etc... I've made a few different custom
 targets in the CMake file. These can be run using 
@@ -187,6 +218,19 @@ in the out-of-source build directory. The targets are:
   will remove the symlink and kill the android phone process, causing
   it to drop its connection to the socket.
 
+*** b2g-dialer-forward
+b2g-dialer-forward is a utility for forwarding the rild unix socket to
+the network, so that developers can work on API. adb forward is
+available to unix sockets, but due to the account access check for
+'radio' by rild, we need to establish the network port as root, then
+communicate with the socket as rild.
+
+b2g-dialer-forward connects the rild unix socket to port 5555 on the
+phone. This can then be forwarded to the desktop using adb forward
+with the tcp protocol. 
+
+As an example, the dialer.py test script uses this utility to talk to
+the phone daemon without having to actually run on the phone.
 ** Relevant Websites
 - [[http://i-miss-erin.blogspot.com/2009/11/radio-layer-interface-in-android.html][Hooking up Android to a GSM radio on the BeagleBoard]]
 - [[http://www.netmite.com/android/mydroid/development/pdk/docs/telephony.html][libril Documentation]]
