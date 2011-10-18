@@ -343,7 +343,7 @@ IF(NOT USING_ANDROID_GCC)
   MESSAGE(FATAL_ERROR "It does not look like you have run android_env.sh yet. Please make sure to set the configuration variables correctly and run it before trying to run cmake, then delete your CMakeCache.txt file and run cmake again.")
 ENDIF()
 
-SET(LIBS "cutils" "binder" "media")
+SET(LIBS "cutils" "binder" "utils" "media")
 SET(GONK $ENV{GONK})
 SET(NDK $ENV{NDK})
 
@@ -361,6 +361,13 @@ BUILDSYS_BUILD_EXE(
 BUILDSYS_BUILD_EXE(
   NAME b2g-dialer-forward
   SOURCES "src/b2g-dialer-forward.cpp"
+  CXX_FLAGS "-fno-exceptions"
+  LINK_LIBS ${LIBS}
+  )
+
+BUILDSYS_BUILD_EXE(
+  NAME b2g-dialer-audio
+  SOURCES "src/audio.cpp"
   CXX_FLAGS "-fno-exceptions"
   LINK_LIBS ${LIBS}
   )

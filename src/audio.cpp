@@ -4,47 +4,33 @@
 using namespace android;
 
 int main(int argc, char **argv) {
+  bool state;
+
   if(argc <= 1) {
-    printf("Usage: ./b2g-audio-test <mic|speaker>");
+    fprintf(stderr, "Usage: b2g-dialer-audio <dial|dial-speaker-on-off|dial-microphone-mute-unmute|hangup>");
     return -1;
   }
+  
+  if(strcmp(argv[1], "dial") == 0){
+    AudioSystem::setPhoneState(AudioSystem::MODE_IN_CALL);
+    AudioSystem::setForceUse(AudioSystem::FOR_COMMUNICATION, AudioSystem::FORCE_NONE);
+  }else if(strcmp(argv[1], "dial-speaker-on-off") == 0){
+    AudioSystem::setPhoneState(AudioSystem::MODE_IN_CALL);
+    AudioSystem::setForceUse(AudioSystem::FOR_COMMUNICATION, 
+			     AudioSystem::getForceUse(AudioSystem::FOR_COMMUNICATION) == AudioSystem::FORCE_NONE ? AudioSystem::FORCE_SPEAKER : AudioSystem::FORCE_NONE);
+  }else if(strcmp(argv[1], "dial-microphone-mute-unmute") == 0){
+    AudioSystem::isMicrophoneMuted(&state);
 
-  status_t status;
-  bool state = false;
+    state ? AudioSystem::setPhoneState(AudioSystem::MODE_IN_CALL) :
+      AudioSystem::setPhoneState(AudioSystem::MODE_IN_COMMUNICATION); 
 
-  if(!strcmp(argv[1],"mic")) {
-    status = AudioSystem::isMicrophoneMuted(&state);
-    LOGI("AudioSystem::isMicrophoneMuted() = %s.\n", state ? "true" : "false");
-
-    if(state){
-      /**
-      * setMode is called when the audio mode changes. NORMAL mode is for
-      * standard audio playback, RINGTONE when a ringtone is playing and IN_CALL
-   	  * when a call is in progress.
-  	  */
-      status = AudioSystem::setMode(AudioSystem::MODE_IN_CALL);
-      LOGI("AudioSystem::setMode(AudioSystem::MODE_IN_CALL) = %d.\n", status);
-    }	else{
-      status = AudioSystem::setMode(AudioSystem::MODE_IN_COMMUNICATION);
-      LOGI("AudioSystem::setMode(AudioSystem::MODE_IN_COMMUNICATION) = %d.\n", status);
-    }
-
-    status = AudioSystem::muteMicrophone(!state);
-    LOGI("AudioSystem::muteMicrophone(%s) = %d.\n", !state ? "true" : "false", status);
-
-    status = AudioSystem::isMicrophoneMuted(&state);
-    LOGI("AudioSystem::isMicrophoneMuted() = %s.\n", state ? "true" : "false");
-    
-  } else if (!strcmp(argv[1],"speaker")) {
-    status = AudioSystem::setMode(AudioSystem::MODE_RINGTONE); 
-    LOGI("AudioSystem::setMode(AudioSystem::MODE_RINGTONE) = %d.\n", status);
-    status = AudioSystem::getMasterMute(&state);
-    LOGI("AudioSystem::getMasterMute() = %d. %s\n", status, state? "true":"false");
-    status = AudioSystem::setMasterMute(!state);
-    LOGI("AudioSystem::setMasterMute() = %d.\n", status);    
-    status = AudioSystem::getMasterMute(&state);
-    LOGI("AudioSystem::getMasterMute() = %d. %s\n", status, state? "true":"false"); 
-  }
+    AudioSystem::muteMicrophone(!state);
+  }else if(strcmp(argv[1], "hangup") == 0){
+    AudioSystem::setPhoneState(AudioSystem::MODE_NORMAL);
+  }else{
+    fprintf(stderr, "Usage: b2g-dialer-audio <dial|dial-speaker-on-off|dial-microphone-mute-unmute|hangup>");
+    return -1;
+  } 
 
   return 0;
 }
