@@ -12,7 +12,6 @@
 #include <linux/prctl.h>
 #include <cutils/sockets.h>
 #include <telephony/ril.h>
-#include <binder/Parcel.h>
 #include <media/AudioSystem.h>
 
 #define AUDIO_REQUEST_FORCE_COMMUNICATION 2000
@@ -24,49 +23,49 @@ using namespace android;
 
 int onAudioRequest(int request) {
   switch(request) {
-  case AUDIO_REQUEST_FORCE_COMMUNICATION: 
-    printf("AUDIO_REQUEST_FORCE_COMMUNICATION\n");
-    AudioSystem::setPhoneState(AudioSystem::MODE_IN_CALL);
-    AudioSystem::setForceUse(AudioSystem::FOR_COMMUNICATION, AudioSystem::FORCE_NONE);
-    return 0;
-  case AUDIO_REQUEST_SPEAKER_ON_OFF: 
-    printf("AUDIO_REQUEST_SPEAKER_ON_OFF\n");
-    AudioSystem::setPhoneState(AudioSystem::MODE_IN_CALL);
-    AudioSystem::setForceUse(AudioSystem::FOR_COMMUNICATION,
-        AudioSystem::getForceUse(AudioSystem::FOR_COMMUNICATION) == 
-        AudioSystem::FORCE_NONE ? AudioSystem::FORCE_SPEAKER : AudioSystem::FORCE_NONE);
-    return 0;
-  case AUDIO_REQUEST_MIC_MUTE_UNMUTE: 
-    printf("AUDIO_REQUEST_MIC_MUTE_UNMUTE\n");
-    bool state;
-    AudioSystem::isMicrophoneMuted(&state);
-    state ? AudioSystem::setPhoneState(AudioSystem::MODE_IN_CALL) :
-      AudioSystem::setPhoneState(AudioSystem::MODE_IN_COMMUNICATION);    
-    return 0;
-  case AUDIO_REQUEST_MODE_NORMAL: 
-    printf("AUDIO_REQUEST_MODE_NORMAL\n");
-    AudioSystem::setPhoneState(AudioSystem::MODE_NORMAL);
-    return 0;
-  default: 
-    printf("UNKNOWN REQUEST\n");
-    return 1;
+    case AUDIO_REQUEST_FORCE_COMMUNICATION: 
+      printf("AUDIO_REQUEST_FORCE_COMMUNICATION\n");
+      AudioSystem::setPhoneState(AudioSystem::MODE_IN_CALL);
+      AudioSystem::setForceUse(AudioSystem::FOR_COMMUNICATION, AudioSystem::FORCE_NONE);
+      return 0;
+    case AUDIO_REQUEST_SPEAKER_ON_OFF: 
+      printf("AUDIO_REQUEST_SPEAKER_ON_OFF\n");
+      AudioSystem::setPhoneState(AudioSystem::MODE_IN_CALL);
+      AudioSystem::setForceUse(AudioSystem::FOR_COMMUNICATION,
+          AudioSystem::getForceUse(AudioSystem::FOR_COMMUNICATION) == 
+          AudioSystem::FORCE_NONE ? AudioSystem::FORCE_SPEAKER : AudioSystem::FORCE_NONE);
+      return 0;
+    case AUDIO_REQUEST_MIC_MUTE_UNMUTE: 
+      printf("AUDIO_REQUEST_MIC_MUTE_UNMUTE\n");
+      bool state;
+      AudioSystem::isMicrophoneMuted(&state);
+      state ? AudioSystem::setPhoneState(AudioSystem::MODE_IN_CALL) :
+        AudioSystem::setPhoneState(AudioSystem::MODE_IN_COMMUNICATION);    
+      return 0;
+    case AUDIO_REQUEST_MODE_NORMAL: 
+      printf("AUDIO_REQUEST_MODE_NORMAL\n");
+      AudioSystem::setPhoneState(AudioSystem::MODE_NORMAL);
+      return 0;
+    default: 
+      printf("UNKNOWN REQUEST\n");
+      return 1;
   }
 }
 
 const char *
 requestToString(int request) {
-/*
-  cat libs/telephony/ril_commands.h \
-  | egrep "^ *{RIL_" \
-  | sed -re 's/\{RIL_([^,]+),[^,]+,([^}]+).+/case RIL_\1: return "\1";/'
+  /*
+     cat libs/telephony/ril_commands.h \
+     | egrep "^ *{RIL_" \
+     | sed -re 's/\{RIL_([^,]+),[^,]+,([^}]+).+/case RIL_\1: return "\1";/'
 
 
-  cat libs/telephony/ril_unsol_commands.h \
-  | egrep "^ *{RIL_" \
-  | sed -re 's/\{RIL_([^,]+),([^}]+).+/case RIL_\1: return "\1";/'
-*/
+     cat libs/telephony/ril_unsol_commands.h \
+     | egrep "^ *{RIL_" \
+     | sed -re 's/\{RIL_([^,]+),([^}]+).+/case RIL_\1: return "\1";/'
+   */
 
-  switch(request) {
+switch(request) {
   case RIL_REQUEST_GET_SIM_STATUS: return "GET_SIM_STATUS";
   case RIL_REQUEST_ENTER_SIM_PIN: return "ENTER_SIM_PIN";
   case RIL_REQUEST_ENTER_SIM_PUK: return "ENTER_SIM_PUK";
@@ -197,7 +196,7 @@ requestToString(int request) {
   case RIL_UNSOL_RINGBACK_TONE: return "UNSOL_RINGBACK_TONE";
   case RIL_UNSOL_RESEND_INCALL_MUTE: return "UNSOL_RESEND_INCALL_MUTE";
   default: return "<unknown request>";
-  }
+}
 }
 
 
@@ -207,130 +206,130 @@ requestToString(int request) {
  */
 void switchUser()
 {
-    prctl(PR_SET_KEEPCAPS, 1, 0, 0, 0);
-    setuid(1001);
+  prctl(PR_SET_KEEPCAPS, 1, 0, 0, 0);
+  setuid(1001);
 
-    struct __user_cap_header_struct header;
-    struct __user_cap_data_struct cap;
-    header.version = _LINUX_CAPABILITY_VERSION;
-    header.pid = 0;
-    cap.effective = cap.permitted = 1 << CAP_NET_ADMIN;
-    cap.inheritable = 0;
-    capset(&header, &cap);
+  struct __user_cap_header_struct header;
+  struct __user_cap_data_struct cap;
+  header.version = _LINUX_CAPABILITY_VERSION;
+  header.pid = 0;
+  cap.effective = cap.permitted = 1 << CAP_NET_ADMIN;
+  cap.inheritable = 0;
+  capset(&header, &cap);
 }
 
 static int
 blockingWrite(int fd, const void *buffer, size_t len) {
-    size_t writeOffset = 0;
-    const uint8_t *toWrite;
+  size_t writeOffset = 0;
+  const uint8_t *toWrite;
 
-    toWrite = (const uint8_t *)buffer;
+  toWrite = (const uint8_t *)buffer;
 
-    while (writeOffset < len) {
-        ssize_t written;
-        do {
-            written = write (fd, toWrite + writeOffset,
-							 len - writeOffset);
-        } while (written < 0 && errno == EINTR);
+  while (writeOffset < len) {
+    ssize_t written;
+    do {
+      written = write (fd, toWrite + writeOffset,
+          len - writeOffset);
+    } while (written < 0 && errno == EINTR);
 
-        if (written >= 0) {
-            writeOffset += written;
-        } else {   // written < 0
-            printf ("RIL Response: unexpected error on write errno:%d", errno);
-            close(fd);
-            return -1;
-        }
+    if (written >= 0) {
+      writeOffset += written;
+    } else {   // written < 0
+      printf ("RIL Response: unexpected error on write errno:%d", errno);
+      close(fd);
+      return -1;
     }
+  }
 
-    return 0;
+  return 0;
 }
 
 int main(int argc, char **argv) {
 
-	int fd;
-	int net_connect;
-	int net_rw;
-	int ret;
-	struct stat r;
-	stat("/dev/socket/rild", &r);	
-	if(!((r.st_mode & 0x1ff) == (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)))
-	{
-		printf("The rild socket is not perm 0666. Please reset the permissions before running this utility.\n");
-		return 1;
-	}
-	
-	net_connect = socket_inaddr_any_server(
-		5555,
-		SOCK_STREAM );
-	if(net_connect < 0)
-	{
-		printf("Cannot create network socket!\n");
-		return 1;
-	}
-	switchUser();
-	while(1)
-	{
-		printf("Waiting on socket\n");
-		struct pollfd connect_fds;
-		connect_fds.fd = net_connect;
-		connect_fds.events = POLLIN;
-		connect_fds.revents = 0;
-		poll(&connect_fds, 1, -1);
-		printf("Socket connected!\n");
-		net_rw = accept(net_connect, NULL, NULL);
+  int fd;
+  int net_connect;
+  int net_rw;
+  int ret;
+  struct stat r;
+  stat("/dev/socket/rild", &r);	
+  if(!((r.st_mode & 0x1ff) == (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)))
+  {
+    printf("The rild socket is not perm 0666. Please reset the permissions before running this utility.\n");
+    return 1;
+  }
 
-		struct passwd *pwd = NULL;
-		pwd = getpwuid(getuid());
-		if (pwd != NULL) {
-			if (strcmp(pwd->pw_name, "radio") == 0) {
-				printf("Radio.\n");
-			} else {
-				printf("No radio.\n");
-			}
-		} else {
-			fprintf(stderr, "getpwuid error.");
-		}
-		printf("Connecting to socket %s\n", RILD_SOCKET_NAME);
-		fd = socket_local_client(
-			RILD_SOCKET_NAME,
-			ANDROID_SOCKET_NAMESPACE_RESERVED,
-			SOCK_STREAM );   
-		if (fd < 0) {
-			printf("could not connect to %s socket: %s\n",
-				   RILD_SOCKET_NAME, strerror(errno));
-			return 1;
-		}
-		printf("connected to socket %s\n", RILD_SOCKET_NAME);
-	
-		char data[1024];
-	
-		struct pollfd fds[2];
-		fds[0].fd = fd;
-		fds[0].events = POLLIN;
-		fds[0].revents = 0;
-		fds[1].fd = net_rw;
-		fds[1].events = POLLIN;
-		fds[1].revents = 0;
+  net_connect = socket_inaddr_any_server(
+      5555,
+      SOCK_STREAM );
+  if(net_connect < 0)
+  {
+    printf("Cannot create network socket!\n");
+    return 1;
+  }
+  switchUser();
+  while(1)
+  {
+    printf("Waiting on socket\n");
+    struct pollfd connect_fds;
+    connect_fds.fd = net_connect;
+    connect_fds.events = POLLIN;
+    connect_fds.revents = 0;
+    poll(&connect_fds, 1, -1);
+    printf("Socket connected!\n");
+    net_rw = accept(net_connect, NULL, NULL);
 
-		while(1)
-		{
-			fds[0].revents = 0;
-			fds[1].revents = 0;
-			poll(fds, 2, -1);
-			if(fds[0].revents > 0)
-			{
-				ret = read(fd, data, 1024);
-				printf("Read %d from radio\n", ret);
-				if(ret > 0)
-					blockingWrite(net_rw, data, ret);
-				else if (ret <= 0)
-					break;
-			}
-			if(fds[1].revents > 0)
-			{
-				ret = read(net_rw, data, 1024);
-				printf("Read %d from network\n", ret);
-				if(ret > 0) {
+    struct passwd *pwd = NULL;
+    pwd = getpwuid(getuid());
+    if (pwd != NULL) {
+      if (strcmp(pwd->pw_name, "radio") == 0) {
+        printf("Radio.\n");
+      } else {
+        printf("No radio.\n");
+      }
+    } else {
+      fprintf(stderr, "getpwuid error.");
+    }
+    printf("Connecting to socket %s\n", RILD_SOCKET_NAME);
+    fd = socket_local_client(
+        RILD_SOCKET_NAME,
+        ANDROID_SOCKET_NAMESPACE_RESERVED,
+        SOCK_STREAM );   
+    if (fd < 0) {
+      printf("could not connect to %s socket: %s\n",
+          RILD_SOCKET_NAME, strerror(errno));
+      return 1;
+    }
+    printf("connected to socket %s\n", RILD_SOCKET_NAME);
+
+    char data[1024];
+
+    struct pollfd fds[2];
+    fds[0].fd = fd;
+    fds[0].events = POLLIN;
+    fds[0].revents = 0;
+    fds[1].fd = net_rw;
+    fds[1].events = POLLIN;
+    fds[1].revents = 0;
+
+    while(1)
+    {
+      fds[0].revents = 0;
+      fds[1].revents = 0;
+      poll(fds, 2, -1);
+      if(fds[0].revents > 0)
+      {
+        ret = read(fd, data, 1024);
+        printf("Read %d from radio\n", ret);
+        if(ret > 0)
+          blockingWrite(net_rw, data, ret);
+        else if (ret <= 0)
+          break;
+      }
+      if(fds[1].revents > 0)
+      {
+        ret = read(net_rw, data, 1024);
+        printf("Read %d from network\n", ret);
+        if(ret > 0) {
           uint32_t *preq = reinterpret_cast<uint32_t*>(data);
           uint32_t req = *(preq+1);
           printf("Message = %d\n", req);
@@ -339,15 +338,15 @@ int main(int argc, char **argv) {
             onAudioRequest(req);
           } else {
             printf("RIL Message = %d %s\n", req, requestToString(req));
-    				blockingWrite(fd, data, ret);
+            blockingWrite(fd, data, ret);
           }
         }
-				else if (ret <= 0)
-					break;
-			}
-		}
-		close(fd);
-		close(net_rw);
-	}
-	return 0;
+        else if (ret <= 0)
+          break;
+      }
+    }
+    close(fd);
+    close(net_rw);
+  }
+  return 0;
 }
