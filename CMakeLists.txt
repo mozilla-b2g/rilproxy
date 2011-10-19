@@ -367,7 +367,7 @@ BUILDSYS_BUILD_EXE(
 
 BUILDSYS_BUILD_EXE(
   NAME b2g-dialer-audio
-  SOURCES "src/audio.cpp"
+  SOURCES "src/audio/audio.cpp"
   CXX_FLAGS "-fno-exceptions"
   LINK_LIBS ${LIBS}
   )

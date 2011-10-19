@@ -37,15 +37,17 @@ class Phone:
     def close(self):
         #self.dialPhone()
         #self.waitForAllReturns()
+        #self.forceAudio()
         self.setScreenState(0)
         self.waitForAllReturns()
         self.socket.close()
-
+        
     def hasData(self):
         return len(self.poll.poll(10)) > 0
 
-    def sendParcel(self, p):
-        self._packets[p.pid] = p
+    def sendParcel(self, p, wait=True):
+        if wait:
+          self._packets[p.pid] = p
         s = p.prepareParcelForWrite()
         # print ["0x%.02x" % ord(x) for x in s]
         self.socket.send(struct.pack("I", socket.htonl(len(s))))
@@ -146,6 +148,20 @@ class Phone:
         p.writeInt(0)
         p.writeInt(0)
         self.sendParcel(p)
+
+    def forceAudio(self):
+        self.sendParcel(CommandParcel(CommandParcel.REQUEST_TYPES["AUDIO_REQUEST_FORCE_COMMUNICATION"]), False)      
+
+    def speakerOnOff(self):
+        self.sendParcel(CommandParcel(CommandPacel.REQUEST_TYPES["AUDIO_REQUEST_SPEAKER_ON_OFF"]), False)
+
+    def micMuteUnMute(self):
+        self.sendParcel(CommandParcel(CommandParcel.REQUEST_TYPES["AUDIO_REQUEST_MIC_MUTE_UNMUTE"]), False)
+
+    def audioModeNormal(self):
+        self.sendParcel(CommandParcel(CommandParcel.REQUEST_TYPES["AUDIO_REQUEST_MODE_NORMAL"]), False)
+
+
 
 class Parcel:
     def __init__(self):
@@ -323,6 +339,11 @@ class CommandParcel(Parcel):
         "RIL_UNSOL_OEM_HOOK_RAW":1028,
         "RIL_UNSOL_RINGBACK_TONE":1029,
         "RIL_UNSOL_RESEND_INCALL_MUTE":1030,
+
+        "AUDIO_REQUEST_FORCE_COMMUNICATION": 2000,
+        "AUDIO_REQUEST_SPEAKER_ON_OFF": 2001,
+        "AUDIO_REQUEST_MIC_MUTE_UNMUTE": 2002,
+        "AUDIO_REQUEST_MODE_NORMAL": 2003,
     }
 
 
