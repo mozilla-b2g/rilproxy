@@ -3,7 +3,7 @@
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
-LOCAL_SRC_FILES:= b2g-dialer-daemon.cpp
+LOCAL_SRC_FILES:= src/b2g-dialer-daemon.c
 
 LOCAL_SHARED_LIBRARIES := libcutils liblog
 
