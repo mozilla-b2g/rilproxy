@@ -9,4 +9,6 @@ LOCAL_SHARED_LIBRARIES := libcutils liblog
 
 LOCAL_MODULE:= b2g-dialer-daemon
 
+LOCAL_MODULE_TAGS:= optional
+
 include $(BUILD_EXECUTABLE)
