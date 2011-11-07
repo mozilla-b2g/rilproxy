@@ -141,7 +141,17 @@ The initialization step is required to turn the radio on.
 - Program: RIL_REQUEST_SMS_ACKNOWLEDGE
 * Gecko Design
 For preliminary design documentation of WebTelephony/WebAPI, see [[https://wiki.mozilla.org/WebAPI/WebTelephony]]
-** Radio Base Class
+** Design Overview
+The RIL communications system will consist events in the context of 3
+threads, as well as a socket proxy daemon:
+
+- The IPC Thread, where IO to the Radio Socket will happen
+- A JS Worker thread, where low level telephony support (parsing
+  parcels to/from socket, dealing with GSM/CDMA/SIP and SIM card
+  commands, etc...) will be implemented
+- The Main Gecko Thread, where the Telephony DOM will expose high
+  level commands to the navigator.phone object.
+** Radio Base Class - IO Thread
 The Radio Base Class declares the basic communication function
 signatures for radios, as well as managing a queue of binary blobs
 coming from and going to the radio. It contains no knowledge of the
@@ -149,27 +159,22 @@ blob structure, just blob length and the blobs themselves. This means
 we can push the Parcel (or whatever serialization method we decide to
 use) creation up into the Telephone class, keeping Radio in its own
 thread to deal with I/O.
-** Radio Implementation Class
-The Radio Implementation classes fill in the communications behaviors
-declared by the radio base class. This should just consist of
-opening/closing/reading/writing file descriptors for sockets, using
-libevent. The current list of communications behaviors is:
+** Radio JS Worker Thread
+The Radio Implementation class will handle
 
-- File sockets, used on the device to communicate with rild
-- Network sockets, used on the desktop to communicate with the port
-  opened by the b2g-dialer-forward utility
-** Telephone Class
-The Telephone class is responsible for 
-
-- Exposing high level functions to Javascript (Dial, Hangup, SMS,
-  etc...)
-- Providing an interface to phone status (Network Name, Signal Strength, etc...)
+- Providing an interface to phone status (Network Name, Signal
+  Strength, Current Calls, Radio Events, etc...)
 - Creating and Managing data in flight from/to the radio
 
-Packet creation happens in the Telephone class, which then queues the
-serialized binary blobs to the Radio object that it owns. It also
-reads information sent from the radio, to trigger events like incoming
-calls.
+Radio communication at the parcel level happens in the worker thread,
+which then queues the serialized binary blobs to the Radio I/O thread.
+It also reads information sent from the radio, to trigger events like
+incoming calls.
+
+** Telephony DOM
+The Telephone class is responsible for exposing high level functions
+to Javascript (Dial, Hangup, SMS, etc...). More information on this is
+available as part of the WebTelephony project.
 * Utilities and Tips
 ** Building
 - Set the path of your local Android NDK and B2G, i.e. export
