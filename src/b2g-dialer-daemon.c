@@ -67,13 +67,13 @@ int main(int argc, char **argv) {
   }
 
   // connect to the rilb2g socket
-  rilb2g_rw = socket_local_client(
+  rilb2g_rw = socket_local_server(
     RILB2G_SOCKET_NAME,
     ANDROID_SOCKET_NAMESPACE_RESERVED,
     SOCK_STREAM );   
   if (rilb2g_rw < 0) {
     LOGE("Could not connect to %s socket: %s\n",
-         RILD_SOCKET_NAME, strerror(errno));
+         RILB2G_SOCKET_NAME, strerror(errno));
     return 1;
   }
   
