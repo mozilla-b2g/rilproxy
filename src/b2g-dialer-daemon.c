@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <linux/prctl.h>
+#define LOG_TAG "RILB2G"
 #include <utils/Log.h>
 #include <cutils/sockets.h>
 
@@ -129,23 +130,32 @@ int main(int argc, char **argv) {
       if(fds[0].revents > 0)
       {
         ret = read(rilb2g_rw, data, 1024);
-        if(ret > 0)
+        if(ret > 0) {
+          LOGD("Read %d from rilb2g_rw", ret);
           blockingWrite(rild_rw, data, ret);
+        }
         else if (ret <= 0)
+        {          
+          LOGE("Failed to read from rilb2g socket, closing...");
           break;
+        }
       }
       if(fds[1].revents > 0)
       {
         ret = read(rild_rw, data, 1024);
         if(ret > 0) {
+          LOGD("Read %d from rild_rw", ret);
           blockingWrite(rilb2g_rw, data, ret);
         }
         else if (ret <= 0)
+        {
+          LOGE("Failed to read from rild socket, closing...");
           break;
+        }
       }
     }
     close(rild_rw);
-    close(rilb2g_rw);
   }
+  close(rilb2g_rw);
   return 0;
 }
