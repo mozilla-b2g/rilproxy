@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
   int rilb2g_conn;
   int ret;
   struct stat r;
-  stat("/dev/socket/rild", &r);	
+  stat("/dev/socket/rild", &r);
   if(!((r.st_mode & 0x1ff) == (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)))
   {
     printf("The rild socket is not perm 0666. Please reset the permissions before running this utility.\n");
@@ -73,13 +73,13 @@ int main(int argc, char **argv) {
   rilb2g_conn = socket_local_server(
     RILB2G_SOCKET_NAME,
     ANDROID_SOCKET_NAMESPACE_RESERVED,
-    SOCK_STREAM );   
+    SOCK_STREAM );
   if (rilb2g_conn < 0) {
     LOGE("Could not connect to %s socket: %s\n",
          RILB2G_SOCKET_NAME, strerror(errno));
     return 1;
   }
-  
+
   switchUser();
   struct passwd *pwd = NULL;
   pwd = getpwuid(getuid());
@@ -93,23 +93,23 @@ int main(int argc, char **argv) {
     LOGE("Cannot convert to radio account, getpwuid error.");
   }
 
+
+  int connected = 0;
+
   while(1)
   {
     LOGD("Waiting on socket");
     int rilb2g_rw;
-    struct pollfd connect_fds;    
+    struct pollfd connect_fds;
     struct sockaddr_un peeraddr;
     socklen_t socklen = sizeof (peeraddr);
-
-    struct ucred creds;
-    socklen_t szCreds = sizeof(creds);
 
     connect_fds.fd = rilb2g_conn;
     connect_fds.events = POLLIN;
     connect_fds.revents = 0;
     poll(&connect_fds, 1, -1);
- 
-    rilb2g_rw = accept(rilb2g_conn, &peeraddr, &socklen);
+
+    rilb2g_rw = accept(rilb2g_conn, (struct sockaddr*)&peeraddr, &socklen);
 
     if (rilb2g_rw < 0 ) {
         LOGE("Error on accept() errno:%d", errno);
@@ -123,12 +123,13 @@ int main(int argc, char **argv) {
     }
 
     LOGD("Socket connected");
-      
+    connected = 1;
+
     LOGD("Connecting to socket %s\n", RILD_SOCKET_NAME);
     rild_rw = socket_local_client(
       RILD_SOCKET_NAME,
       ANDROID_SOCKET_NAMESPACE_RESERVED,
-      SOCK_STREAM );   
+      SOCK_STREAM );
     if (rild_rw < 0) {
       LOGE("Could not connect to %s socket: %s\n",
            RILD_SOCKET_NAME, strerror(errno));
@@ -146,35 +147,48 @@ int main(int argc, char **argv) {
     fds[1].events = POLLIN;
     fds[1].revents = 0;
 
-    while(1)
+    while(connected)
     {
       poll(fds, 2, -1);
       if(fds[0].revents > 0)
       {
         fds[0].revents = 0;
-        ret = read(rilb2g_rw, data, 1024);
-        if(ret > 0) {
-          LOGD("Read %d from rilb2g_rw", ret);
-          blockingWrite(rild_rw, data, ret);
-        }
-        else if (ret <= 0)
-        {          
-          LOGE("Failed to read from rilb2g socket, closing...");
-          break;
+        while(1)
+        {
+          ret = read(rilb2g_rw, data, 1024);
+          if(ret > 0) {
+            LOGD("Read %d from rilb2g_rw", ret);
+            blockingWrite(rild_rw, data, ret);
+          }
+          else if (ret <= 0)
+          {
+            LOGE("Failed to read from rilb2g socket, closing...");
+            connected = 0;
+            break;
+          }
+          if(ret < 1024)
+          {
+            break;
+          }
         }
       }
       if(fds[1].revents > 0)
       {
         fds[1].revents = 0;
-        ret = read(rild_rw, data, 1024);
-        if(ret > 0) {
-          LOGD("Read %d from rild_rw", ret);
-          blockingWrite(rilb2g_rw, data, ret);
-        }
-        else if (ret <= 0)
-        {
-          LOGE("Failed to read from rild socket, closing...");
-          break;
+        while(1) {
+          ret = read(rild_rw, data, 1024);
+          if(ret > 0) {
+            LOGD("Read %d from rild_rw", ret);
+            blockingWrite(rilb2g_rw, data, ret);
+          }
+          else if (ret <= 0) {
+            LOGE("Failed to read from rild socket, closing...");
+            connected = 0;
+            break;
+          }
+          if(ret < 1024) {
+            break;
+          }
         }
       }
     }
