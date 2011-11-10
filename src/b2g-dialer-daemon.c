@@ -7,6 +7,8 @@
 #include <errno.h>
 #include <poll.h>
 #include <pwd.h>
+#include <netinet/in.h>
+#include <sys/un.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <linux/prctl.h>
@@ -57,7 +59,7 @@ blockingWrite(int fd, const void *buffer, size_t len) {
 int main(int argc, char **argv) {
 
   int rild_rw;
-  int rilb2g_rw;
+  int rilb2g_conn;
   int ret;
   struct stat r;
   stat("/dev/socket/rild", &r);	
@@ -68,38 +70,60 @@ int main(int argc, char **argv) {
   }
 
   // connect to the rilb2g socket
-  rilb2g_rw = socket_local_server(
+  rilb2g_conn = socket_local_server(
     RILB2G_SOCKET_NAME,
     ANDROID_SOCKET_NAMESPACE_RESERVED,
     SOCK_STREAM );   
-  if (rilb2g_rw < 0) {
+  if (rilb2g_conn < 0) {
     LOGE("Could not connect to %s socket: %s\n",
          RILB2G_SOCKET_NAME, strerror(errno));
     return 1;
   }
   
   switchUser();
+  struct passwd *pwd = NULL;
+  pwd = getpwuid(getuid());
+  if (pwd != NULL) {
+    if (strcmp(pwd->pw_name, "radio") == 0) {
+      LOGD("Converted to radio account");
+    } else {
+      LOGE("Cannot convert to radio account");
+    }
+  } else {
+    LOGE("Cannot convert to radio account, getpwuid error.");
+  }
+
   while(1)
   {
     LOGD("Waiting on socket");
-    struct pollfd connect_fds;
-    connect_fds.fd = rilb2g_rw;
+    int rilb2g_rw;
+    struct pollfd connect_fds;    
+    struct sockaddr_un peeraddr;
+    socklen_t socklen = sizeof (peeraddr);
+
+    struct ucred creds;
+    socklen_t szCreds = sizeof(creds);
+
+    connect_fds.fd = rilb2g_conn;
     connect_fds.events = POLLIN;
     connect_fds.revents = 0;
     poll(&connect_fds, 1, -1);
-    LOGD("Socket connected");
+ 
+    rilb2g_rw = accept(rilb2g_conn, &peeraddr, &socklen);
 
-    struct passwd *pwd = NULL;
-    pwd = getpwuid(getuid());
-    if (pwd != NULL) {
-      if (strcmp(pwd->pw_name, "radio") == 0) {
-        LOGD("Converted to radio account");
-      } else {
-        LOGE("Cannot convert to radio account");
-      }
-    } else {
-      LOGE("Cannot convert to radio account, getpwuid error.");
+    if (rilb2g_rw < 0 ) {
+        LOGE("Error on accept() errno:%d", errno);
+        /* start listening for new connections again */
+        continue;
     }
+    ret = fcntl(rilb2g_rw, F_SETFL, O_NONBLOCK);
+
+    if (ret < 0) {
+        LOGE ("Error setting O_NONBLOCK errno:%d", errno);
+    }
+
+    LOGD("Socket connected");
+      
     LOGD("Connecting to socket %s\n", RILD_SOCKET_NAME);
     rild_rw = socket_local_client(
       RILD_SOCKET_NAME,
@@ -124,11 +148,10 @@ int main(int argc, char **argv) {
 
     while(1)
     {
-      fds[0].revents = 0;
-      fds[1].revents = 0;
       poll(fds, 2, -1);
       if(fds[0].revents > 0)
       {
+        fds[0].revents = 0;
         ret = read(rilb2g_rw, data, 1024);
         if(ret > 0) {
           LOGD("Read %d from rilb2g_rw", ret);
@@ -142,6 +165,7 @@ int main(int argc, char **argv) {
       }
       if(fds[1].revents > 0)
       {
+        fds[1].revents = 0;
         ret = read(rild_rw, data, 1024);
         if(ret > 0) {
           LOGD("Read %d from rild_rw", ret);
@@ -155,7 +179,7 @@ int main(int argc, char **argv) {
       }
     }
     close(rild_rw);
+    close(rilb2g_rw);
   }
-  close(rilb2g_rw);
   return 0;
 }
