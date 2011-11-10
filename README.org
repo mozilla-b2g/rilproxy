@@ -1,3 +1,10 @@
+* Note
+Most of this has moved to the mozilla wiki 
+
+https://wiki.mozilla.org/B2G/RIL
+
+I'm just keeping this around if we still need it while working on the RIL.
+
 * B2G Dialer Test
 ** Description
 
