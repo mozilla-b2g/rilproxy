@@ -31,22 +31,22 @@ void switchUser() {
 }
 
 static int
-blockingWrite(int fd, const void *buffer, size_t len) {
-  size_t writeOffset = 0;
-  const uint8_t *toWrite;
+writeToSocket(int fd, const void *buffer, size_t len) {
+  size_t write_offset = 0;
+  const uint8_t *to_write;
 
-  toWrite = (const uint8_t *)buffer;
+  to_write = (const uint8_t *)buffer;
 
-  while (writeOffset < len) {
+  while (write_offset < len) {
     ssize_t written;
     do {
-      written = write (fd, toWrite + writeOffset,
-                       len - writeOffset);
+      written = write (fd, to_write + write_offset,
+                       len - write_offset);
     } while (written < 0 && errno == EINTR);
 
     if (written >= 0) {
-      writeOffset += written;
-    } else {   // written < 0
+      write_offset += written;
+    } else {
       LOGE("RIL Response: unexpected error on write errno:%d", errno);
       close(fd);
       return -1;
@@ -112,31 +112,33 @@ int main(int argc, char **argv) {
     rilb2g_rw = accept(rilb2g_conn, (struct sockaddr*)&peeraddr, &socklen);
 
     if (rilb2g_rw < 0 ) {
-        LOGE("Error on accept() errno:%d", errno);
-        /* start listening for new connections again */
-        continue;
+      LOGE("Error on accept() errno:%d", errno);
+      /* start listening for new connections again */
+      continue;
     }
     ret = fcntl(rilb2g_rw, F_SETFL, O_NONBLOCK);
 
     if (ret < 0) {
-        LOGE ("Error setting O_NONBLOCK errno:%d", errno);
+      LOGE ("Error setting O_NONBLOCK errno:%d", errno);
     }
 
     LOGD("Socket connected");
     connected = 1;
 
-    LOGD("Connecting to socket %s\n", RILD_SOCKET_NAME);
-    rild_rw = socket_local_client(
-      RILD_SOCKET_NAME,
-      ANDROID_SOCKET_NAMESPACE_RESERVED,
-      SOCK_STREAM );
-    if (rild_rw < 0) {
-      LOGE("Could not connect to %s socket: %s\n",
+    while(1) {
+      LOGD("Connecting to socket %s\n", RILD_SOCKET_NAME);
+      rild_rw = socket_local_client(
+        RILD_SOCKET_NAME,
+        ANDROID_SOCKET_NAMESPACE_RESERVED,
+        SOCK_STREAM );
+      if (rild_rw >= 0) {
+        break;
+      }
+      LOGE("Could not connect to %s socket, retrying: %s\n",
            RILD_SOCKET_NAME, strerror(errno));
-      return 1;
+      sleep(1);
     }
     LOGD("Connected to socket %s\n", RILD_SOCKET_NAME);
-
     char data[1024];
 
     struct pollfd fds[2];
@@ -157,8 +159,7 @@ int main(int argc, char **argv) {
         {
           ret = read(rilb2g_rw, data, 1024);
           if(ret > 0) {
-            LOGD("Read %d from rilb2g_rw", ret);
-            blockingWrite(rild_rw, data, ret);
+            writeToSocket(rild_rw, data, ret);
           }
           else if (ret <= 0)
           {
@@ -178,8 +179,7 @@ int main(int argc, char **argv) {
         while(1) {
           ret = read(rild_rw, data, 1024);
           if(ret > 0) {
-            LOGD("Read %d from rild_rw", ret);
-            blockingWrite(rilb2g_rw, data, ret);
+            writeToSocket(rilb2g_rw, data, ret);
           }
           else if (ret <= 0) {
             LOGE("Failed to read from rild socket, closing...");
