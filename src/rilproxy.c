@@ -1,6 +1,9 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-#define  RILD_SOCKET_NAME    "rild"
-#define  RILPROXY_SOCKET_NAME    "rilproxy"
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set sw=2 ts=8 et ft=cpp: */
+#define RILD_SOCKET_NAME       "rild"
+#define RILPROXY_SOCKET_NAME   "rilproxy"
+#define RILPROXYD_SOCKET_NAME  "rilproxyd"
+#define RILPROXYD_TRIGGER_FILE "/data/local/rilproxyd"
 
 #include <stdio.h>
 #include <fcntl.h>
@@ -61,7 +64,21 @@ int main(int argc, char **argv) {
   int rild_rw;
   int rilproxy_conn;
   int ret;
+  char* rilproxy_socket;
   struct stat r;
+  
+  // Check for rildebug file at /data/local/rildebug
+  if(stat(RILPROXYD_TRIGGER_FILE, &r) == 0) {
+    LOGD("rilproxyd trigger file found, listening on /dev/socket/rilproxyd for desktop debugging");
+    rilproxy_socket = RILPROXYD_SOCKET_NAME;
+    unlink(RILPROXYD_TRIGGER_FILE);
+  }
+  else {
+    LOGD("rilproxyd trigger file not found, listening on /dev/socket/rilproxy");
+    rilproxy_socket = RILPROXY_SOCKET_NAME;
+  }
+  
+
   stat("/dev/socket/rild", &r);
   if(!((r.st_mode & 0x1ff) == (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)))
   {
@@ -71,7 +88,7 @@ int main(int argc, char **argv) {
 
   // connect to the rilproxy socket
   rilproxy_conn = socket_local_server(
-    RILPROXY_SOCKET_NAME,
+    rilproxy_socket,
     ANDROID_SOCKET_NAMESPACE_RESERVED,
     SOCK_STREAM );
   if (rilproxy_conn < 0) {
