@@ -116,13 +116,6 @@ int main(int argc, char **argv) {
   }
   
 
-  stat("/dev/socket/rild", &r);
-  if(!((r.st_mode & 0x1ff) == (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)))
-  {
-    printf("The rild socket is not perm 0666. Please reset the permissions before running this utility.\n");
-    return 1;
-  }
-
   // connect to the rilproxy socket
   rilproxy_conn = socket_local_server(
     rilproxy_socket,
