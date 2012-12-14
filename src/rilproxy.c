@@ -183,7 +183,13 @@ int main(int argc, char **argv) {
       }
       LOGE("Could not connect to %s socket, retrying: %s\n",
            RILD_SOCKET_NAME, strerror(errno));
-      sleep(1);
+
+      connect_fds.fd = rilproxy_conn;
+      connect_fds.events = POLLIN;
+      connect_fds.revents = 0;
+      if (poll(&connect_fds, 1, 1000) > 0) {
+        goto reconnect_rilproxy;
+      }
     }
     LOGD("Connected to socket %s\n", RILD_SOCKET_NAME);
     char data[1024];
@@ -240,6 +246,7 @@ int main(int argc, char **argv) {
       }
     }
     close(rild_rw);
+  reconnect_rilproxy:
     close(rilproxy_rw);
   }
   return 0;
