@@ -94,12 +94,53 @@ writeToSocket(int fd, const void *buffer, size_t len) {
   return 0;
 }
 
+const char*
+getSocketName(const char* defval, unsigned int client_id) {
+  static char buf[128];
+  static int offset = 0;
+
+  if (client_id > 0) {
+    const char *p = buf + offset;
+    offset += snprintf(buf + offset, sizeof(buf) - offset, "%s%u",
+                       defval, client_id);
+    offset++;
+    return p;
+  }
+
+  return defval;
+}
+
 int main(int argc, char **argv) {
 
   int rild_rw;
   int rilproxy_conn;
   int ret;
-  const char* rilproxy_socket = RILPROXY_SOCKET_NAME;
+  unsigned int client_id = 0;
+  const char* rild_socket = NULL;
+  const char* rilproxy_socket = NULL;
+
+  while ((ret = getopt(argc, argv, "c:s:")) != -1) {
+    switch (ret) {
+      case 'c': {
+        if (sscanf(optarg, "%u", &client_id) != 1) {
+          LOGE("invalid client id specified: %s", optarg);
+          return -1;
+        }
+        break;
+      }
+      case 's': {
+        rild_socket = optarg;
+        break;
+      }
+      default:
+        return -1;
+    }
+  }
+
+  rilproxy_socket = getSocketName(RILPROXY_SOCKET_NAME, client_id);
+  if (!rild_socket) {
+    rild_socket = getSocketName(RILD_SOCKET_NAME, client_id);
+  }
 
   // connect to the rilproxy socket
   rilproxy_conn = socket_local_server(
@@ -158,16 +199,16 @@ int main(int argc, char **argv) {
     connected = 1;
 
     while(1) {
-      LOGD("Connecting to socket %s\n", RILD_SOCKET_NAME);
+      LOGD("Connecting to socket %s\n", rild_socket);
       rild_rw = socket_local_client(
-        RILD_SOCKET_NAME,
+        rild_socket,
         ANDROID_SOCKET_NAMESPACE_RESERVED,
         SOCK_STREAM );
       if (rild_rw >= 0) {
         break;
       }
       LOGE("Could not connect to %s socket, retrying: %s\n",
-           RILD_SOCKET_NAME, strerror(errno));
+           rild_socket, strerror(errno));
 
       connect_fds.fd = rilproxy_conn;
       connect_fds.events = POLLIN;
@@ -176,7 +217,7 @@ int main(int argc, char **argv) {
         goto reconnect_rilproxy;
       }
     }
-    LOGD("Connected to socket %s\n", RILD_SOCKET_NAME);
+    LOGD("Connected to socket %s\n", rild_socket);
     char data[1024];
 
     struct pollfd fds[2];
