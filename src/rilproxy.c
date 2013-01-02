@@ -39,8 +39,6 @@
 
 #define RILD_SOCKET_NAME       "rild"
 #define RILPROXY_SOCKET_NAME   "rilproxy"
-#define RILPROXYD_SOCKET_NAME  "rilproxyd"
-#define RILPROXYD_TRIGGER_FILE "/data/local/rilproxyd"
 
 #include <stdio.h>
 #include <fcntl.h>
@@ -101,20 +99,7 @@ int main(int argc, char **argv) {
   int rild_rw;
   int rilproxy_conn;
   int ret;
-  char* rilproxy_socket;
-  struct stat r;
-  
-  // Check for rildebug file at /data/local/rildebug
-  if(stat(RILPROXYD_TRIGGER_FILE, &r) == 0) {
-    LOGD("rilproxyd trigger file found, listening on /dev/socket/rilproxyd for desktop debugging");
-    rilproxy_socket = RILPROXYD_SOCKET_NAME;
-    unlink(RILPROXYD_TRIGGER_FILE);
-  }
-  else {
-    LOGD("rilproxyd trigger file not found, listening on /dev/socket/rilproxy");
-    rilproxy_socket = RILPROXY_SOCKET_NAME;
-  }
-  
+  const char* rilproxy_socket = RILPROXY_SOCKET_NAME;
 
   // connect to the rilproxy socket
   rilproxy_conn = socket_local_server(
@@ -123,7 +108,7 @@ int main(int argc, char **argv) {
     SOCK_STREAM );
   if (rilproxy_conn < 0) {
     LOGE("Could not connect to %s socket: %s\n",
-         RILPROXY_SOCKET_NAME, strerror(errno));
+         rilproxy_socket, strerror(errno));
     return 1;
   }
 
