@@ -54,9 +54,11 @@
 #include <utils/Log.h>
 #include <cutils/sockets.h>
 
-#define LISTEN_BACKLOG 4
 
-void setCapability() {
+void switchUser() {
+  prctl(PR_SET_KEEPCAPS, 1, 0, 0, 0);
+  setuid(1001);
+
   struct __user_cap_header_struct header;
   struct __user_cap_data_struct cap;
   header.version = _LINUX_CAPABILITY_VERSION;
@@ -140,22 +142,18 @@ int main(int argc, char **argv) {
     rild_socket = getSocketName(RILD_SOCKET_NAME, client_id);
   }
 
-  // get control rilproxy socket
-  rilproxy_conn = android_get_control_socket(rilproxy_socket);
+  // connect to the rilproxy socket
+  rilproxy_conn = socket_local_server(
+    rilproxy_socket,
+    ANDROID_SOCKET_NAMESPACE_RESERVED,
+    SOCK_STREAM );
   if (rilproxy_conn < 0) {
     LOGE("Could not connect to %s socket: %s\n",
          rilproxy_socket, strerror(errno));
     return 1;
   }
 
-  ret = listen(rilproxy_conn, LISTEN_BACKLOG);
-  if (ret < 0) {
-    LOGE("Failed to listen on control socket '%d': %s",
-         rilproxy_conn, strerror(errno));
-    return 1;
-  }
-
-  setCapability();
+  switchUser();
   struct passwd *pwd = NULL;
   pwd = getpwuid(getuid());
   if (pwd != NULL) {
