@@ -56,10 +56,7 @@
 
 #define LISTEN_BACKLOG 4
 
-void switchUser() {
-  prctl(PR_SET_KEEPCAPS, 1, 0, 0, 0);
-  setuid(1001);
-
+void setCapability() {
   struct __user_cap_header_struct header;
   struct __user_cap_data_struct cap;
   header.version = _LINUX_CAPABILITY_VERSION;
@@ -158,7 +155,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  switchUser();
+  setCapability();
   struct passwd *pwd = NULL;
   pwd = getpwuid(getuid());
   if (pwd != NULL) {
