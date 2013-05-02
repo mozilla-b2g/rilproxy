@@ -54,6 +54,10 @@
 #include <utils/Log.h>
 #include <cutils/sockets.h>
 
+#ifndef LOGD
+#define LOGD ALOGD
+#define LOGE ALOGE
+#endif
 
 void switchUser() {
   prctl(PR_SET_KEEPCAPS, 1, 0, 0, 0);
