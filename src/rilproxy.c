@@ -49,6 +49,7 @@
 #include <sys/un.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <linux/capability.h>
 #include <linux/prctl.h>
 #define LOG_TAG "RILPROXY"
 #include <utils/Log.h>
