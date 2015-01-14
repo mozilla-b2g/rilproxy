@@ -40,15 +40,14 @@
 #define RILD_SOCKET_NAME       "rild"
 #define RILPROXY_SOCKET_NAME   "rilproxy"
 
-#include <stdio.h>
-#include <fcntl.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <poll.h>
 #include <pwd.h>
-#include <netinet/in.h>
-#include <sys/un.h>
+#include <stdio.h>
+#include <string.h>
 #include <sys/socket.h>
-#include <sys/stat.h>
+#include <sys/un.h>
 #include <linux/capability.h>
 #include <linux/prctl.h>
 #define LOG_TAG "RILPROXY"
@@ -147,15 +146,16 @@ int main(int argc, char **argv) {
     rild_socket = getSocketName(RILD_SOCKET_NAME, client_id);
   }
 
-  // connect to the rilproxy socket
-  rilproxy_conn = socket_local_server(
-    rilproxy_socket,
-    ANDROID_SOCKET_NAMESPACE_RESERVED,
-    SOCK_STREAM );
+  rilproxy_conn = android_get_control_socket(rilproxy_socket);
   if (rilproxy_conn < 0) {
-    LOGE("Could not connect to %s socket: %s\n",
+    LOGE("Could not retrieve %s socket: %s\n",
          rilproxy_socket, strerror(errno));
     return 1;
+  }
+  if (listen(rilproxy_conn, 1) < 0) {
+    LOGE("Could not listen on %s socket: %s\n",
+         rilproxy_socket, strerror(errno));
+    return -1;
   }
 
   switchUser();
