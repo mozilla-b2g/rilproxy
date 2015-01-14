@@ -43,13 +43,10 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
-#include <pwd.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <linux/capability.h>
-#include <linux/prctl.h>
 #define LOG_TAG "RILPROXY"
 #include <utils/Log.h>
 #include <cutils/sockets.h>
@@ -58,19 +55,6 @@
 #define LOGD ALOGD
 #define LOGE ALOGE
 #endif
-
-void switchUser() {
-  prctl(PR_SET_KEEPCAPS, 1, 0, 0, 0);
-  setuid(1001);
-
-  struct __user_cap_header_struct header;
-  struct __user_cap_data_struct cap;
-  header.version = _LINUX_CAPABILITY_VERSION;
-  header.pid = 0;
-  cap.effective = cap.permitted = 1 << CAP_NET_ADMIN;
-  cap.inheritable = 0;
-  capset(&header, &cap);
-}
 
 static int
 writeToSocket(int fd, const void *buffer, size_t len) {
@@ -157,20 +141,6 @@ int main(int argc, char **argv) {
          rilproxy_socket, strerror(errno));
     return -1;
   }
-
-  switchUser();
-  struct passwd *pwd = NULL;
-  pwd = getpwuid(getuid());
-  if (pwd != NULL) {
-    if (strcmp(pwd->pw_name, "radio") == 0) {
-      LOGD("Converted to radio account");
-    } else {
-      LOGE("Cannot convert to radio account");
-    }
-  } else {
-    LOGE("Cannot convert to radio account, getpwuid error.");
-  }
-
 
   int connected = 0;
 
